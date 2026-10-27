@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>3D Minecraft Multiplayer Game</title>
+    <title>3D Minecraft Sandbox Multiplayer</title>
     <!-- Google AdSense Code -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2157167042014574" crossorigin="anonymous"></script>
     <!-- Tailwind CSS -->
@@ -34,7 +33,7 @@
         #crosshair::before, #crosshair::after {
             content: '';
             position: absolute;
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.9);
             box-shadow: 0 0 2px rgba(0,0,0,0.8);
         }
         #crosshair::before { top: 7px; left: 0; width: 16px; height: 2px; }
@@ -77,7 +76,7 @@
             display: none;
         }
         .mobile-btn {
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.6);
             border: 2px solid rgba(255, 255, 255, 0.4);
             color: white; font-weight: bold;
             border-radius: 50%;
@@ -85,58 +84,51 @@
             user-select: none; touch-action: manipulation;
         }
         .mobile-btn:active { background: rgba(255, 255, 255, 0.3); transform: scale(0.95); }
-        #underwater-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 80, 200, 0.35);
-            pointer-events: none; display: none; z-index: 8;
-        }
     </style>
 </head>
 <body class="relative w-screen h-screen overflow-hidden">
 
     <div id="crosshair"></div>
-    <div id="underwater-overlay"></div>
 
-    <!-- Start / Multiplayer Lobby Overlay -->
+    <!-- Lobby & Settings Overlay -->
     <div id="instructions" class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/85 text-white p-6 text-center backdrop-blur-sm overflow-y-auto">
-        <h1 class="text-4xl md:text-5xl font-extrabold mb-2 tracking-wider text-green-400">3D MULTIPLAYER CRAFT</h1>
-        <p class="text-sm md:text-base mb-6 text-gray-300">친구와 함께 즐기는 마인크래프트 월드</p>
+        <h1 class="text-4xl md:text-5xl font-extrabold mb-2 tracking-wider text-green-400">3D CRAFT MULTIPLAYER</h1>
+        <p class="text-sm md:text-base mb-6 text-gray-300">친구와 같은 월드에서 함께 놀아보세요!</p>
         
-        <!-- Multiplayer Room Setup Box -->
         <div class="bg-gray-900/90 p-4 rounded-xl border border-gray-700 mb-6 max-w-md w-full text-left shadow-xl">
-            <h3 class="font-bold text-yellow-400 mb-2 text-sm">🌐 멀티플레이 설정 (친구와 같이하기)</h3>
+            <h3 class="font-bold text-yellow-400 mb-2 text-sm">🌐 멀티플레이 설정</h3>
             <div class="mb-3">
-                <label class="block text-xs text-gray-400 mb-1">내 방 코드 (자동 생성)</label>
+                <label class="block text-xs text-gray-400 mb-1">내 방 코드</label>
                 <div class="flex gap-2">
-                    <input type="text" id="my-peer-id" readonly class="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-xs text-white w-full select-all font-mono" placeholder="연결 중...">
-                    <button id="btn-copy-id" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded text-xs font-bold transition">코드 복사</button>
+                    <input type="text" id="my-peer-id" readonly class="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-xs text-white w-full select-all font-mono" placeholder="생성 중...">
+                    <button id="btn-copy-id" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded text-xs font-bold transition">복사</button>
                 </div>
             </div>
             <div>
-                <label class="block text-xs text-gray-400 mb-1">친구 방 코드 입력 후 입장</label>
+                <label class="block text-xs text-gray-400 mb-1">친구 방 코드 입력</label>
                 <div class="flex gap-2">
-                    <input type="text" id="friend-peer-id" class="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-xs text-white w-full font-mono" placeholder="친구의 방 코드 붙여넣기">
+                    <input type="text" id="friend-peer-id" class="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-xs text-white w-full font-mono" placeholder="친구 코드 붙여넣기">
                     <button id="btn-connect" class="bg-green-600 hover:bg-green-500 px-3 py-1.5 rounded text-xs font-bold transition">접속</button>
                 </div>
             </div>
-            <p id="connection-status" class="text-xs text-cyan-400 mt-2 font-semibold">상태: 싱글 플레이 중 (또는 방 대기중)</p>
+            <p id="connection-status" class="text-xs text-cyan-400 mt-2 font-semibold">상태: 서버 연결 대기 중...</p>
         </div>
 
         <button id="btn-start-game" class="bg-green-500 hover:bg-green-400 text-black font-extrabold text-lg px-8 py-3 rounded-xl shadow-lg transition transform hover:scale-105 mb-6 cursor-pointer">
-            게임 시작하기!
+            게임 시작하기
         </button>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl text-left bg-gray-900/80 p-4 rounded-xl border border-gray-700 text-xs text-gray-300">
             <div>
-                <span class="text-yellow-400 font-bold">💻 PC 조작:</span> WASD 이동, Space 점프, 좌클릭 파괴, 우클릭 설치, 1-8 슬롯 선택
+                <span class="text-yellow-400 font-bold">💻 PC 조작:</span> WASD 이동, Shift 앉기, Space 점프, 좌클릭 파괴, 우클릭 설치
             </div>
             <div>
-                <span class="text-yellow-400 font-bold">📱 모바일 조작:</span> 좌측 패드 이동, 우측 화면 시점 회전, 우측 버튼 점프/파괴/설치
+                <span class="text-yellow-400 font-bold">📱 모바일 조작:</span> 좌측 패드 이동, 우측 화면 시점 회전, 우측 전용 버튼 사용
             </div>
         </div>
     </div>
 
-    <!-- Hotbar -->
+    <!-- Hotbar UI -->
     <div id="hotbar" class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-1.5 bg-gray-900/90 p-2 rounded-xl border border-gray-700"></div>
 
     <div id="touch-look-area"></div>
@@ -144,6 +136,7 @@
         <div id="joystick-knob"></div>
     </div>
 
+    <!-- Mobile Control Buttons -->
     <div id="mobile-controls" class="absolute right-4 bottom-4 z-20 flex flex-col items-end gap-2.5 hidden pointer-events-none">
         <div class="flex gap-2 pointer-events-auto">
             <button id="btn-crouch" class="mobile-btn w-12 h-12 text-xs bg-gray-800/80">앉기</button>
@@ -156,18 +149,18 @@
     </div>
 
     <script>
-        // --- PeerJS Multiplayer Setup ---
+        // --- PeerJS Multiplayer ---
         let peer = null;
         let connections = {};
         let myId = '';
-        const remotePlayers = {}; // id -> { mesh, name }
+        const remotePlayers = {};
 
         function initPeer() {
             peer = new Peer();
             peer.on('open', (id) => {
                 myId = id;
                 document.getElementById('my-peer-id').value = id;
-                document.getElementById('connection-status').innerText = '상태: 방 생성 완료 (코드 공유 가능)';
+                document.getElementById('connection-status').innerText = '상태: 준비 완료 (친구에게 코드를 전달하세요)';
             });
 
             peer.on('connection', (conn) => {
@@ -177,7 +170,7 @@
 
         function setupConnection(conn) {
             connections[conn.peer] = conn;
-            document.getElementById('connection-status').innerText = `상태: 친구 접속됨 (${conn.peer.substring(0,6)}...)`;
+            document.getElementById('connection-status').innerText = `상태: 친구 접속됨!`;
 
             conn.on('data', (data) => {
                 handleNetworkData(conn.peer, data);
@@ -189,7 +182,7 @@
                     delete remotePlayers[conn.peer];
                 }
                 delete connections[conn.peer];
-                document.getElementById('connection-status').innerText = '상태: 친구 연결 해제됨';
+                document.getElementById('connection-status').innerText = '상태: 친구 접속 해제됨';
             });
         }
 
@@ -198,27 +191,38 @@
             const conn = peer.connect(friendId);
             conn.on('open', () => {
                 setupConnection(conn);
-                document.getElementById('connection-status').innerText = `상태: 친구 방 접속 성공!`;
+                document.getElementById('connection-status').innerText = `상태: 친구 방 접속 완료!`;
             });
         }
 
         function broadcastData(data) {
             for (let id in connections) {
-                connections[id].send(data);
+                if (connections[id] && connections[id].open) {
+                    connections[id].send(data);
+                }
             }
         }
 
         function handleNetworkData(peerId, data) {
             if (data.type === 'pos') {
                 if (!remotePlayers[peerId]) {
-                    // Create remote player box representation
-                    const geom = new THREE.BoxGeometry(0.6, 1.6, 0.6);
-                    const mat = new THREE.MeshLambertMaterial({ color: 0xff4500 });
-                    const mesh = new THREE.Mesh(geom, mat);
-                    scene.add(mesh);
-                    remotePlayers[peerId] = { mesh: mesh };
+                    // Create visual player avatar for friends (Red/Orange box character)
+                    const group = new THREE.Group();
+                    const bodyGeo = new THREE.BoxGeometry(0.6, 1.4, 0.4);
+                    const headGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+                    const mat = new THREE.MeshLambertMaterial({ color: 0xff5722 });
+                    
+                    const body = new THREE.Mesh(bodyGeo, mat);
+                    const head = new THREE.Mesh(headGeo, mat);
+                    head.position.y = 0.9;
+                    
+                    group.add(body);
+                    group.add(head);
+                    scene.add(group);
+                    
+                    remotePlayers[peerId] = { mesh: group };
                 }
-                remotePlayers[peerId].mesh.position.set(data.x, data.y, data.z);
+                remotePlayers[peerId].mesh.position.set(data.x, data.y - 0.7, data.z);
                 remotePlayers[peerId].mesh.rotation.y = data.ry;
             } else if (data.type === 'block_break') {
                 removeBlockServer(data.x, data.y, data.z);
@@ -227,20 +231,21 @@
             }
         }
 
-        // UI Event Listeners for Multiplayer
-        document.getElementById('btn-copy-id').addEventListener('click', () => {
+        document.getElementById('btn-copy-id').addEventListener('click', (e) => {
+            e.stopPropagation();
             const input = document.getElementById('my-peer-id');
             input.select();
             navigator.clipboard.writeText(input.value);
-            alert('방 코드가 복사되었습니다! 친구에게 공유하세요.');
+            alert('방 코드가 복사되었습니다!');
         });
 
-        document.getElementById('btn-connect').addEventListener('click', () => {
+        document.getElementById('btn-connect').addEventListener('click', (e) => {
+            e.stopPropagation();
             const fId = document.getElementById('friend-peer-id').value.trim();
             if (fId) connectToFriend(fId);
         });
 
-        // --- Simplex Noise Generator ---
+        // --- Simplex Noise ---
         class SimplexNoise {
             constructor() {
                 this.p = new Uint8Array(256);
@@ -256,40 +261,38 @@
         }
         const simplex = new SimplexNoise();
 
-        // --- Block Definitions & Weapons ---
+        // --- Block Definitions (Correct Colors) ---
         const BLOCK_TYPES = {
-            GRASS: { id: 1, name: '잔디', color: '#557a2b', topColor: '#4e9a06' },
+            GRASS: { id: 1, name: '잔디', color: '#557a2b', topColor: '#4CAF50' }, // Vibrant Green Grass Top
             DIRT: { id: 2, name: '흙', color: '#684a23' },
-            STONE: { id: 3, name: '돌', color: '#7d7d7d' },
+            STONE: { id: 3, name: '돌', color: '#808080' }, // True Grey Stone
             SAND: { id: 4, name: '모래', color: '#d6c585' },
             WOOD: { id: 5, name: '나무', color: '#5c4018' },
-            LEAVES: { id: 6, name: '나뭇잎', color: '#2d6e32' },
-            WATER: { id: 7, name: '물', color: '#1e68b8', transparent: true, opacity: 0.5 },
-            SWORD: { id: 12, name: '철 검 (무기)', color: '#silver', isTool: true },
-            PICKAXE: { id: 13, name: '철 곡괭이', color: '#888888', isTool: true }
+            LEAVES: { id: 6, name: '나뭇잎', color: '#2e7d32' },
+            SWORD: { id: 12, name: '철 검 (무기)', color: '#c0c0c0', isTool: true },
+            PICKAXE: { id: 13, name: '철 곡괭이', color: '#9e9e9e', isTool: true }
         };
 
-        const inventory = { 1: 30, 2: 30, 3: 30, 4: 20, 5: 15, 6: 15, 12: 1, 13: 1 };
+        const inventory = { 1: 40, 2: 40, 3: 40, 4: 20, 5: 20, 6: 20, 12: 1, 13: 1 };
         const SELECTABLE_ITEMS = [
             BLOCK_TYPES.GRASS, BLOCK_TYPES.DIRT, BLOCK_TYPES.STONE, BLOCK_TYPES.SAND,
             BLOCK_TYPES.WOOD, BLOCK_TYPES.LEAVES, BLOCK_TYPES.SWORD, BLOCK_TYPES.PICKAXE
         ];
         let selectedItemIndex = 0;
 
-        // --- Textures ---
         function createTextures() {
             const mats = {};
             const canvas = document.createElement('canvas');
             canvas.width = 32; canvas.height = 32;
             const ctx = canvas.getContext('2d');
 
-            function getTex(color) {
-                ctx.fillStyle = color;
+            function getTex(colorStr) {
+                ctx.fillStyle = colorStr;
                 ctx.fillRect(0, 0, 32, 32);
                 for (let x = 0; x < 32; x += 4) {
                     for (let y = 0; y < 32; y += 4) {
                         if (Math.random() > 0.5) {
-                            ctx.fillStyle = 'rgba(0,0,0,0.08)';
+                            ctx.fillStyle = 'rgba(0,0,0,0.1)';
                             ctx.fillRect(x, y, 4, 4);
                         }
                     }
@@ -300,17 +303,17 @@
             }
 
             const dirtTex = getTex(BLOCK_TYPES.DIRT.color);
-            const grassTop = getTex(BLOCK_TYPES.GRASS.topColor); // True Green
+            const grassTopTex = getTex(BLOCK_TYPES.GRASS.topColor);
             const stoneTex = getTex(BLOCK_TYPES.STONE.color);
             const sandTex = getTex(BLOCK_TYPES.SAND.color);
             const woodTex = getTex(BLOCK_TYPES.WOOD.color);
             const leafTex = getTex(BLOCK_TYPES.LEAVES.color);
-            const waterTex = getTex(BLOCK_TYPES.WATER.color);
 
+            // Grass Block Material Assembly
             mats[BLOCK_TYPES.GRASS.id] = [
                 new THREE.MeshLambertMaterial({ map: dirtTex }),
                 new THREE.MeshLambertMaterial({ map: dirtTex }),
-                new THREE.MeshLambertMaterial({ map: grassTop }),
+                new THREE.MeshLambertMaterial({ map: grassTopTex }),
                 new THREE.MeshLambertMaterial({ map: dirtTex }),
                 new THREE.MeshLambertMaterial({ map: dirtTex }),
                 new THREE.MeshLambertMaterial({ map: dirtTex })
@@ -320,29 +323,25 @@
             mats[BLOCK_TYPES.SAND.id] = new THREE.MeshLambertMaterial({ map: sandTex });
             mats[BLOCK_TYPES.WOOD.id] = new THREE.MeshLambertMaterial({ map: woodTex });
             mats[BLOCK_TYPES.LEAVES.id] = new THREE.MeshLambertMaterial({ map: leafTex, transparent: true, opacity: 0.85 });
-            mats[BLOCK_TYPES.WATER.id] = new THREE.MeshLambertMaterial({ map: waterTex, transparent: true, opacity: 0.5, depthWrite: false });
 
             return mats;
         }
 
-        const WORLD_SIZE = 36;
-        const WATER_LEVEL = 4;
+        const WORLD_SIZE = 32;
 
         let scene, camera, renderer;
         let blockMaterials;
         const blocksMap = new Map();
         const blockTypeMap = new Map();
-        const droppedItems = [];
 
         const player = {
-            position: new THREE.Vector3(0, 25, 0),
+            position: new THREE.Vector3(0, 20, 0),
             velocity: new THREE.Vector3(),
             height: 1.6,
-            crouchHeight: 1.2,
+            crouchHeight: 1.1,
             isCrouching: false,
             radius: 0.3,
-            onGround: false,
-            inWater: false
+            onGround: false
         };
 
         const keys = {};
@@ -371,7 +370,7 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.body.appendChild(renderer.domElement);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+            scene.add(new THREE.AmbientLight(0xffffff, 0.75));
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
             dirLight.position.set(20, 40, 20);
             scene.add(dirLight);
@@ -387,13 +386,13 @@
             generateWorld();
 
             const h = getTerrainHeight(0, 0);
-            player.position.set(0, h + 3, 0);
+            player.position.set(0, h + 2.0, 0);
 
             setupEventListeners();
             if (isTouchDevice) setupMobileControls();
 
-            // Start Button Event
-            document.getElementById('btn-start-game').addEventListener('click', () => {
+            document.getElementById('btn-start-game').addEventListener('click', (e) => {
+                e.stopPropagation();
                 document.getElementById('instructions').style.display = 'none';
                 if (!isTouchDevice) renderer.domElement.requestPointerLock();
             });
@@ -403,7 +402,7 @@
 
         function getTerrainHeight(x, z) {
             const n = simplex.noise2D(x * 0.08, z * 0.08);
-            return Math.floor(n * 5 + 10);
+            return Math.floor(n * 4 + 8);
         }
 
         function generateWorld() {
@@ -414,19 +413,16 @@
                 for (let z = -half; z < half; z++) {
                     const height = getTerrainHeight(x, z);
 
-                    for (let y = 0; y <= Math.max(height, WATER_LEVEL); y++) {
+                    for (let y = 0; y <= height; y++) {
                         let type = null;
-                        if (y <= height) {
-                            if (y === height) type = BLOCK_TYPES.GRASS;
-                            else if (y > height - 3) type = BLOCK_TYPES.DIRT;
-                            else type = BLOCK_TYPES.STONE;
-                        } else if (y <= WATER_LEVEL) {
-                            type = BLOCK_TYPES.WATER;
-                        }
+                        if (y === height) type = BLOCK_TYPES.GRASS;
+                        else if (y > height - 3) type = BLOCK_TYPES.DIRT;
+                        else type = BLOCK_TYPES.STONE;
+
                         if (type) createBlock(x, y, z, type, boxGeo);
                     }
 
-                    if (height > WATER_LEVEL + 1 && Math.random() < 0.025 && Math.abs(x) > 2 && Math.abs(z) > 2) {
+                    if (Math.random() < 0.02 && Math.abs(x) > 2 && Math.abs(z) > 2) {
                         createTree(x, height + 1, z, boxGeo);
                     }
                 }
@@ -462,8 +458,6 @@
         function removeBlock(x, y, z) {
             const key = `${x},${y},${z}`;
             const mesh = blocksMap.get(key);
-            const typeId = blockTypeMap.get(key);
-            if (typeId === BLOCK_TYPES.WATER.id) return false;
             if (mesh) {
                 scene.remove(mesh);
                 blocksMap.delete(key);
@@ -492,14 +486,17 @@
                 slot.className = `hotbar-slot relative rounded-lg flex items-center justify-center cursor-pointer ${index === selectedItemIndex ? 'active' : ''}`;
                 const icon = document.createElement('div');
                 icon.className = 'w-6 h-6 rounded border border-black/40';
-                icon.style.backgroundColor = item.color;
+                icon.style.backgroundColor = item.topColor || item.color;
                 const badge = document.createElement('span');
                 badge.className = 'absolute bottom-0 right-1 text-[10px] font-extrabold text-white';
                 badge.id = `slot-count-${item.id}`;
                 badge.innerText = inventory[item.id] || 0;
                 slot.appendChild(icon);
                 slot.appendChild(badge);
-                slot.addEventListener('click', () => selectSlot(index));
+                slot.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectSlot(index);
+                });
                 hotbarEl.appendChild(slot);
             });
         }
@@ -543,12 +540,6 @@
                 if (e.button === 2) performAction('place');
             });
             window.addEventListener('contextmenu', e => e.preventDefault());
-
-            window.addEventListener('wheel', (e) => {
-                if (document.getElementById('instructions').style.display !== 'none') return;
-                if (e.deltaY > 0) selectSlot((selectedItemIndex + 1) % SELECTABLE_ITEMS.length);
-                else selectSlot((selectedItemIndex - 1 + SELECTABLE_ITEMS.length) % SELECTABLE_ITEMS.length);
-            });
 
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -622,10 +613,22 @@
                 }
             }, { passive: false });
 
-            document.getElementById('btn-jump').addEventListener('touchstart', (e) => { e.preventDefault(); keys['Space'] = true; });
-            document.getElementById('btn-jump').addEventListener('touchend', () => { keys['Space'] = false; });
-            document.getElementById('btn-destroy').addEventListener('click', (e) => { e.preventDefault(); performAction('destroy'); });
-            document.getElementById('btn-place').addEventListener('click', (e) => { e.preventDefault(); performAction('place'); });
+            // Mobile Buttons (Prevent propagation to avoid accidental block breaking)
+            document.getElementById('btn-jump').addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); keys['Space'] = true; });
+            document.getElementById('btn-jump').addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); keys['Space'] = false; });
+            
+            document.getElementById('btn-destroy').addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); performAction('destroy'); });
+            document.getElementById('btn-place').addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); performAction('place'); });
+
+            // Fix: Separate Crouch Button Event (Do NOT break blocks)
+            document.getElementById('btn-crouch').addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                player.isCrouching = !player.isCrouching;
+                const btn = document.getElementById('btn-crouch');
+                if (player.isCrouching) btn.classList.add('bg-yellow-600/80');
+                else btn.classList.remove('bg-yellow-600/80');
+            });
         }
 
         function performAction(action) {
@@ -640,7 +643,7 @@
                     removeBlock(pos.x, pos.y, pos.z);
                 } else if (action === 'place') {
                     const selectedItem = SELECTABLE_ITEMS[selectedItemIndex];
-                    if (selectedItem.isTool) return; // Weapons/tools cannot be placed as blocks
+                    if (selectedItem.isTool) return;
 
                     const normal = hit.face.normal;
                     const tx = pos.x + normal.x;
@@ -657,7 +660,7 @@
             }
         }
 
-        // Fixed Collision Box (No infinite jumping bug)
+        // --- Precise Solid Physics (Fix Jittering & Shaking) ---
         function checkCollision(pos, currentHeight) {
             const minX = Math.floor(pos.x - player.radius + 0.5);
             const maxX = Math.floor(pos.x + player.radius + 0.5);
@@ -669,10 +672,7 @@
             for (let x = minX; x <= maxX; x++) {
                 for (let y = minY; y <= maxY; y++) {
                     for (let z = minZ; z <= maxZ; z++) {
-                        const key = `${x},${y},${z}`;
-                        if (blocksMap.has(key)) {
-                            if (blockTypeMap.get(key) !== BLOCK_TYPES.WATER.id) return true;
-                        }
+                        if (blocksMap.has(`${x},${y},${z}`)) return true;
                     }
                 }
             }
@@ -680,7 +680,8 @@
         }
 
         function updatePlayer(delta) {
-            const currentHeight = player.height;
+            if (!isTouchDevice) player.isCrouching = keys['ShiftLeft'] || keys['ShiftRight'];
+            const currentHeight = player.isCrouching ? player.crouchHeight : player.height;
 
             const moveVector = new THREE.Vector3();
             if (keys['KeyW']) moveVector.z -= 1;
@@ -694,7 +695,7 @@
             }
             moveVector.normalize();
 
-            const moveSpeed = 5.5;
+            const moveSpeed = player.isCrouching ? 2.5 : 5.5;
             const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camera.rotation.y);
             const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), camera.rotation.y);
 
@@ -705,38 +706,43 @@
             player.velocity.x = targetVel.x;
             player.velocity.z = targetVel.z;
 
-            // Stable Gravity & Jump Physics
+            // Smooth Gravity
             player.velocity.y -= 22.0 * delta;
             if (keys['Space'] && player.onGround) {
                 player.velocity.y = 7.5;
                 player.onGround = false;
             }
 
-            // X Movement
+            // Move Horizontal X
             const oldX = player.position.x;
             player.position.x += player.velocity.x * delta;
             if (checkCollision(player.position, currentHeight)) player.position.x = oldX;
 
-            // Z Movement
+            // Move Horizontal Z
             const oldZ = player.position.z;
             player.position.z += player.velocity.z * delta;
             if (checkCollision(player.position, currentHeight)) player.position.z = oldZ;
 
-            // Y Movement (Collision Fixed)
+            // Move Vertical Y (Fix Jitter/Jump shake)
+            const oldY = player.position.y;
             player.position.y += player.velocity.y * delta;
+            
             if (checkCollision(player.position, currentHeight)) {
-                if (player.velocity.y < 0) {
+                if (player.velocity.y <= 0) {
                     player.onGround = true;
                     player.velocity.y = 0;
-                    player.position.y = Math.ceil(player.position.y - currentHeight) + currentHeight;
-                } else if (player.velocity.y > 0) {
+                    // Snap exactly to block surface height
+                    const feetY = Math.floor(oldY - currentHeight + 0.05);
+                    player.position.y = feetY + 1 + currentHeight;
+                } else {
                     player.velocity.y = 0;
+                    player.position.y = oldY;
                 }
             } else {
                 player.onGround = false;
             }
 
-            // Fall Protection
+            // Fall Reset
             if (player.position.y < -15) {
                 const h = getTerrainHeight(0, 0);
                 player.position.set(0, h + 3, 0);
@@ -745,7 +751,7 @@
 
             camera.position.copy(player.position);
 
-            // Broadcast position to friends in multiplayer
+            // Broadcast Position
             broadcastData({
                 type: 'pos',
                 x: player.position.x,
