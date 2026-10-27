@@ -262,7 +262,7 @@
 
         // --- Block & Item Definitions ---
         const BLOCK_TYPES = {
-            GRASS: { id: 1, name: '잔디', color: '#557a2b', topColor: '#4CAF50' },
+            GRASS: { id: 1, name: '잔디', color: '#684a23', topColor: '#4CAF50' },
             DIRT: { id: 2, name: '흙', color: '#684a23' },
             STONE: { id: 3, name: '돌', color: '#808080' },
             SAND: { id: 4, name: '모래', color: '#d6c585' },
@@ -283,26 +283,28 @@
             13: '⛏️'
         };
 
-        const inventory = { 1: 40, 2: 40, 3: 40, 4: 20, 5: 20, 6: 20, 12: 1, 13: 1 };
+        // Infinite / Generous block counts so building never stops
+        const inventory = { 1: 999, 2: 999, 3: 999, 4: 999, 5: 999, 6: 999, 12: 1, 13: 1 };
         const SELECTABLE_ITEMS = [
             BLOCK_TYPES.GRASS, BLOCK_TYPES.DIRT, BLOCK_TYPES.STONE, BLOCK_TYPES.SAND,
             BLOCK_TYPES.WOOD, BLOCK_TYPES.LEAVES, BLOCK_TYPES.SWORD, BLOCK_TYPES.PICKAXE
         ];
         let selectedItemIndex = 0;
 
+        // --- Minecraft-Style Procedural Textures ---
         function createTextures() {
             const mats = {};
             const canvas = document.createElement('canvas');
             canvas.width = 32; canvas.height = 32;
             const ctx = canvas.getContext('2d');
 
-            function getTex(colorStr) {
-                ctx.fillStyle = colorStr;
+            function createNoiseTex(baseColor) {
+                ctx.fillStyle = baseColor;
                 ctx.fillRect(0, 0, 32, 32);
                 for (let x = 0; x < 32; x += 4) {
                     for (let y = 0; y < 32; y += 4) {
                         if (Math.random() > 0.5) {
-                            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                            ctx.fillStyle = 'rgba(0,0,0,0.12)';
                             ctx.fillRect(x, y, 4, 4);
                         }
                     }
@@ -312,20 +314,58 @@
                 return t;
             }
 
-            const dirtTex = getTex(BLOCK_TYPES.DIRT.color);
-            const grassTopTex = getTex(BLOCK_TYPES.GRASS.topColor);
-            const stoneTex = getTex(BLOCK_TYPES.STONE.color);
-            const sandTex = getTex(BLOCK_TYPES.SAND.color);
-            const woodTex = getTex(BLOCK_TYPES.WOOD.color);
-            const leafTex = getTex(BLOCK_TYPES.LEAVES.color);
+            // 1. Dirt Texture
+            const dirtTex = createNoiseTex('#684a23');
 
+            // 2. Grass Top Texture
+            const grassTopTex = createNoiseTex('#4CAF50');
+
+            // 3. Grass Side Texture (Minecraft style: Dirt with green grass top edge)
+            ctx.fillStyle = '#684a23';
+            ctx.fillRect(0, 0, 32, 32);
+            for (let x = 0; x < 32; x += 4) {
+                for (let y = 0; y < 32; y += 4) {
+                    if (Math.random() > 0.5) {
+                        ctx.fillStyle = 'rgba(0,0,0,0.12)';
+                        ctx.fillRect(x, y, 4, 4);
+                    }
+                }
+            }
+            ctx.fillStyle = '#4CAF50';
+            for (let x = 0; x < 32; x += 4) {
+                const h = 8 + Math.floor(Math.random() * 6);
+                ctx.fillRect(x, 0, 4, h);
+            }
+            const grassSideTex = new THREE.CanvasTexture(canvas);
+            grassSideTex.magFilter = THREE.NearestFilter;
+
+            // 4. Stone Texture (True Grey)
+            const stoneTex = createNoiseTex('#808080');
+
+            // 5. Sand Texture
+            const sandTex = createNoiseTex('#d6c585');
+
+            // 6. Wood Texture (Brown Bark with vertical lines)
+            ctx.fillStyle = '#5c4018';
+            ctx.fillRect(0, 0, 32, 32);
+            ctx.fillStyle = '#3d280f';
+            for (let x = 0; x < 32; x += 8) {
+                ctx.fillRect(x, 0, 2, 32);
+            }
+            const woodTex = new THREE.CanvasTexture(canvas);
+            woodTex.magFilter = THREE.NearestFilter;
+
+            // 7. Leaves Texture
+            const leafTex = createNoiseTex('#2e7d32');
+
+            // Assign materials
             mats[BLOCK_TYPES.GRASS.id] = [
-                new THREE.MeshLambertMaterial({ map: dirtTex }),
-                new THREE.MeshLambertMaterial({ map: dirtTex }),
-                new THREE.MeshLambertMaterial({ map: grassTopTex }),
-                new THREE.MeshLambertMaterial({ map: dirtTex }),
-                new THREE.MeshLambertMaterial({ map: dirtTex }),
-                new THREE.MeshLambertMaterial({ map: dirtTex })
+                new THREE.MeshLambertMaterial({ map: grassSideTex }), // right
+                new THREE.MeshLambertMaterial({ map: grassSideTex }), // left
+                new THREE.MeshLambertMaterial({ map: grassTopTex }),  // top
+                new THREE.MeshLambertMaterial({ map: dirtTex }),      // bottom
+                new THREE.MeshLambertMaterial({ map: grassSideTex }), // front
+                new THREE.MeshLambertMaterial({ map: grassSideTex })  // back
             ];
             mats[BLOCK_TYPES.DIRT.id] = new THREE.MeshLambertMaterial({ map: dirtTex });
             mats[BLOCK_TYPES.STONE.id] = new THREE.MeshLambertMaterial({ map: stoneTex });
@@ -336,7 +376,8 @@
             return mats;
         }
 
-        const WORLD_SIZE = 32;
+        const WORLD_SIZE = 36;
+        const WORLD_DEPTH = -12; // Deep underground world
 
         let scene, camera, renderer;
         let blockMaterials;
@@ -395,7 +436,7 @@
             generateWorld();
 
             const h = getTerrainHeight(0, 0);
-            player.position.set(0, h + 2.0, 0);
+            player.position.set(0, h + 2.5, 0);
 
             setupEventListeners();
             if (isTouchDevice) setupMobileControls();
@@ -410,10 +451,11 @@
         }
 
         function getTerrainHeight(x, z) {
-            const n = simplex.noise2D(x * 0.08, z * 0.08);
-            return Math.floor(n * 4 + 8);
+            const n = simplex.noise2D(x * 0.06, z * 0.06);
+            return Math.floor(n * 5 + 10);
         }
 
+        // Deep underground world generation
         function generateWorld() {
             const half = Math.floor(WORLD_SIZE / 2);
             const boxGeo = new THREE.BoxGeometry(1, 1, 1);
@@ -422,11 +464,15 @@
                 for (let z = -half; z < half; z++) {
                     const height = getTerrainHeight(x, z);
 
-                    for (let y = 0; y <= height; y++) {
+                    for (let y = WORLD_DEPTH; y <= height; y++) {
                         let type = null;
-                        if (y === height) type = BLOCK_TYPES.GRASS;
-                        else if (y > height - 3) type = BLOCK_TYPES.DIRT;
-                        else type = BLOCK_TYPES.STONE;
+                        if (y === height) {
+                            type = BLOCK_TYPES.GRASS;
+                        } else if (y > height - 3) {
+                            type = BLOCK_TYPES.DIRT;
+                        } else {
+                            type = BLOCK_TYPES.STONE; // Deep underground stone layer
+                        }
 
                         if (type) createBlock(x, y, z, type, boxGeo);
                     }
@@ -640,6 +686,7 @@
             });
         }
 
+        // --- Robust Block Placement Logic ---
         function performAction(action) {
             raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
             const intersects = raycaster.intersectObjects(Array.from(blocksMap.values()));
@@ -659,10 +706,21 @@
                     const ty = pos.y + normal.y;
                     const tz = pos.z + normal.z;
 
-                    if (!inventory[selectedItem.id] || inventory[selectedItem.id] <= 0) return;
+                    // Prevent placing block inside player's bounding box
+                    const playerBox = new THREE.Box3(
+                        new THREE.Vector3(player.position.x - player.radius, player.position.y - player.height, player.position.z - player.radius),
+                        new THREE.Vector3(player.position.x + player.radius, player.position.y + 0.2, player.position.z + player.radius)
+                    );
+                    const blockBox = new THREE.Box3(
+                        new THREE.Vector3(tx - 0.5, ty - 0.5, tz - 0.5),
+                        new THREE.Vector3(tx + 0.5, ty + 0.5, tz + 0.5)
+                    );
+
+                    if (playerBox.intersectsBox(blockBox)) return; // Don't place inside player
 
                     createBlock(tx, ty, tz, selectedItem);
-                    inventory[selectedItem.id]--;
+                    // Keep generous supply so building never fails
+                    if (inventory[selectedItem.id] < 900) inventory[selectedItem.id]++;
                     updateHotbarUI();
                     broadcastData({ type: 'block_place', x: tx, y: ty, z: tz, typeId: selectedItem.id });
                 }
@@ -731,7 +789,6 @@
             const oldY = player.position.y;
             player.position.y += player.velocity.y * delta;
             
-            // Fixed jittering / shaking / infinite jump bug using epsilon tolerance
             const feetPos = player.position.y - currentHeight;
             const blockBelowY = Math.floor(feetPos + 0.001);
 
@@ -755,7 +812,7 @@
                 }
             }
 
-            if (player.position.y < -15) {
+            if (player.position.y < WORLD_DEPTH - 5) {
                 const h = getTerrainHeight(0, 0);
                 player.position.set(0, h + 3, 0);
                 player.velocity.set(0, 0, 0);
