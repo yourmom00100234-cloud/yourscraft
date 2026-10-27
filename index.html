@@ -272,16 +272,15 @@
             PICKAXE: { id: 13, name: '철 곡괭이', isTool: true }
         };
 
-        // Hotbar Emojis for clear identification
         const ITEM_ICONS = {
-            1: '🟩', // 잔디
-            2: '🟫', // 흙
-            3: '⬜', // 돌
-            4: '🟨', // 모래
-            5: '🪵', // 나무
-            6: '🍃', // 나뭇잎
-            12: '⚔️', // 검
-            13: '⛏️'  // 곡괭이
+            1: '🟩',
+            2: '🟫',
+            3: '⬜',
+            4: '🟨',
+            5: '🪵',
+            6: '🍃',
+            12: '⚔️',
+            13: '⛏️'
         };
 
         const inventory = { 1: 40, 2: 40, 3: 40, 4: 20, 5: 20, 6: 20, 12: 1, 13: 1 };
@@ -495,7 +494,6 @@
                 const slot = document.createElement('div');
                 slot.className = `hotbar-slot relative rounded-lg flex items-center justify-center cursor-pointer text-xl ${index === selectedItemIndex ? 'active' : ''}`;
                 
-                // Clear emoji icon for item recognition
                 const icon = document.createElement('span');
                 icon.innerText = ITEM_ICONS[item.id] || '📦';
 
@@ -626,7 +624,6 @@
                 }
             }, { passive: false });
 
-            // Mobile Buttons
             document.getElementById('btn-jump').addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); keys['Space'] = true; });
             document.getElementById('btn-jump').addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); keys['Space'] = false; });
             
@@ -734,18 +731,28 @@
             const oldY = player.position.y;
             player.position.y += player.velocity.y * delta;
             
+            // Fixed jittering / shaking / infinite jump bug using epsilon tolerance
+            const feetPos = player.position.y - currentHeight;
+            const blockBelowY = Math.floor(feetPos + 0.001);
+
             if (checkCollision(player.position, currentHeight)) {
                 if (player.velocity.y <= 0) {
                     player.onGround = true;
                     player.velocity.y = 0;
-                    const feetY = Math.floor(oldY - currentHeight + 0.05);
-                    player.position.y = feetY + 1 + currentHeight;
+                    player.position.y = (blockBelowY + 1) + currentHeight;
                 } else {
                     player.velocity.y = 0;
                     player.position.y = oldY;
                 }
             } else {
-                player.onGround = false;
+                const checkFeetPos = player.position.clone();
+                checkFeetPos.y -= 0.05;
+                if (checkCollision(checkFeetPos, currentHeight)) {
+                    player.onGround = true;
+                    player.velocity.y = 0;
+                } else {
+                    player.onGround = false;
+                }
             }
 
             if (player.position.y < -15) {
