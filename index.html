@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>3D Minecraft Sandbox Game</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+        }
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 16px;
+            height: 16px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 10;
+        }
+        #crosshair::before, #crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 2px rgba(0,0,0,0.8);
+        }
+        #crosshair::before {
+            top: 7px; left: 0; width: 16px; height: 2px;
+        }
+        #crosshair::after {
+            top: 0; left: 7px; width: 2px; height: 16px;
+        }
+        .hotbar-slot {
+            width: 48px;
+            height: 48px;
+            border: 3px solid #4a4a4a;
+            background: rgba(0, 0, 0, 0.5);
+            box-shadow: inset 0 0 5px #000;
+            transition: transform 0.1s, border-color 0.1s;
+        }
+        .hotbar-slot.active {
+            border-color: #ffffff;
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        /* Virtual Joystick */
+        #joystick-container {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            touch-action: none;
+            display: none;
+            z-index: 20;
+        }
+        #joystick-knob {
+            position: absolute;
+            top: 35px;
+            left: 35px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            pointer-events: none;
+        }
+        /* Mobile Touch Look Area */
+        #touch-look-area {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 60%;
+            height: 100%;
+            z-index: 5;
+            display: none;
+        }
+        .mobile-btn {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            font-weight: bold;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            touch-action: manipulation;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .mobile-btn:active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0.95);
+        }
+        #underwater-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 80, 200, 0.35);
+            pointer-events: none;
+            display: none;
+            z-index: 8;
+            backdrop-filter: blur(1px);
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden">
+
+    <!-- Crosshair -->
+    <div id="crosshair"></div>
+
+    <!-- Underwater View Effect Overlay -->
+    <div id="underwater-overlay"></div>
+
+    <!-- Start Overlay -->
+    <div id="instructions" class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/75 text-white p-6 text-center cursor-pointer backdrop-blur-sm">
+        <h1 class="text-4xl md:text-5xl font-extrabold mb-4 tracking-wider text-green-400 drop-shadow">3D CRAFT WORLD</h1>
+        <p class="text-lg md:text-xl mb-6 text-gray-200">화면을 터치하거나 클릭하여 시작하세요!</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl text-left bg-gray-900/80 p-5 rounded-xl border border-gray-700 text-sm md:text-base">
+            <div>
+                <h3 class="font-bold text-yellow-400 mb-2 border-b border-gray-700 pb-1">💻 PC 조작법</h3>
+                <ul class="space-y-1 text-gray-300">
+                    <li>• <span class="text-white font-semibold">WASD</span> : 이동</li>
+                    <li>• <span class="text-white font-semibold">Shift</span> : 앉기 (절벽 추락 방지)</li>
+                    <li>• <span class="text-white font-semibold">Space</span> : 점프 / 수영하기</li>
+                    <li>• <span class="text-white font-semibold">마우스 좌클릭</span> : 블록 파괴</li>
+                    <li>• <span class="text-white font-semibold">마우스 우클릭</span> : 블록 설치</li>
+                    <li>• <span class="text-white font-semibold">1-6 / 휠</span> : 블록 선택</li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="font-bold text-yellow-400 mb-2 border-b border-gray-700 pb-1">📱 모바일 조작법</h3>
+                <ul class="space-y-1 text-gray-300">
+                    <li>• <span class="text-white font-semibold">좌측 패드</span> : 이동</li>
+                    <li>• <span class="text-white font-semibold">우측 화면 drag</span> : 시점 회전</li>
+                    <li>• <span class="text-white font-semibold">우측 버튼</span> : 점프, 파괴, 설치, 앉기</li>
+                    <li>• <span class="text-white font-semibold">하단 슬롯</span> : 블록 터치 선택</li>
+                </ul>
+            </div>
+        </div>
+        
+        <p class="mt-8 text-xs text-gray-400 animate-pulse">클릭하면 바로 시작됩니다!</p>
+    </div>
+
+    <!-- Hotbar UI -->
+    <div id="hotbar" class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2 bg-gray-900/90 p-2 rounded-xl border border-gray-700 shadow-2xl">
+        <!-- Hotbar slots populated dynamically -->
+    </div>
+
+    <!-- Touch Look Drag Area for Mobile -->
+    <div id="touch-look-area"></div>
+
+    <!-- Virtual Joystick for Mobile -->
+    <div id="joystick-container">
+        <div id="joystick-knob"></div>
+    </div>
+
+    <!-- Mobile Action Buttons -->
+    <div id="mobile-controls" class="absolute right-6 bottom-6 z-20 flex flex-col items-end gap-3 hidden pointer-events-none">
+        <div class="flex gap-3 pointer-events-auto">
+            <button id="btn-crouch" class="mobile-btn w-14 h-14 text-xs bg-gray-800/80 border-gray-500">앉기</button>
+            <button id="btn-destroy" class="mobile-btn w-16 h-16 text-sm bg-red-600/80 border-red-400">파괴</button>
+        </div>
+        <div class="flex gap-3 pointer-events-auto">
+            <button id="btn-place" class="mobile-btn w-16 h-16 text-sm bg-green-600/80 border-green-400">생성</button>
+            <button id="btn-jump" class="mobile-btn w-16 h-16 text-sm bg-blue-600/80 border-blue-400">점프</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Simplex / Perlin Noise Generator ---
+        class SimplexNoise {
+            constructor() {
+                this.p = new Uint8Array(256);
+                for (let i = 0; i < 256; i++) this.p[i] = Math.floor(Math.random() * 256);
+                this.perm = new Uint8Array(512);
+                this.permMod12 = new Uint8Array(512);
+                for (let i = 0; i < 512; i++) {
+                    this.perm[i] = this.p[i & 255];
+                    this.permMod12[i] = (this.perm[i] % 12);
+                }
+            }
+            dot2(g, x, y) { return g[0] * x + g[1] * y; }
+            noise2D(xin, yin) {
+                const grad3 = [[1,1],[-1,1],[1,-1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+                let n0, n1, n2;
+                const F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
+                const s = (xin + yin) * F2;
+                const i = Math.floor(xin + s);
+                const j = Math.floor(yin + s);
+                const G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
+                const t = (i + j) * G2;
+                const X0 = i - t;
+                const Y0 = j - t;
+                const x0 = xin - X0;
+                const y0 = yin - Y0;
+                let i1, j1;
+                if (x0 > y0) { i1 = 1; j1 = 0; } else { i1 = 0; j1 = 1; }
+                const x1 = x0 - i1 + G2;
+                const y1 = y0 - j1 + G2;
+                const x2 = x0 - 1.0 + 2.0 * G2;
+                const y2 = y0 - 1.0 + 2.0 * G2;
+                const ii = i & 255;
+                const jj = j & 255;
+                const gi0 = this.permMod12[ii + this.perm[jj]];
+                const gi1 = this.permMod12[ii + i1 + this.perm[jj + j1]];
+                const gi2 = this.permMod12[ii + 1 + this.perm[jj + 1]];
+                let t0 = 0.5 - x0 * x0 - y0 * y0;
+                if (t0 < 0) n0 = 0.0;
+                else { t0 *= t0; n0 = t0 * t0 * this.dot2(grad3[gi0], x0, y0); }
+                let t1 = 0.5 - x1 * x1 - y1 * y1;
+                if (t1 < 0) n1 = 0.0;
+                else { t1 *= t1; n1 = t1 * t1 * this.dot2(grad3[gi1], x1, y1); }
+                let t2 = 0.5 - x2 * x2 - y2 * y2;
+                if (t2 < 0) n2 = 0.0;
+                else { t2 *= t2; n2 = t2 * t2 * this.dot2(grad3[gi2], x2, y2); }
+                return 70.0 * (n0 + n1 + n2);
+            }
+        }
+
+        const simplex = new SimplexNoise();
+
+        // --- Block Definitions & Quantities ---
+        const BLOCK_TYPES = {
+            GRASS: { id: 1, name: '잔디', color: '#557a2b', topColor: '#6db33f', sideColor: '#557a2b', bottomColor: '#684a23', mineable: true },
+            DIRT: { id: 2, name: '흙', color: '#684a23', mineable: true },
+            STONE: { id: 3, name: '돌', color: '#7d7d7d', mineable: true },
+            SAND: { id: 4, name: '모래', color: '#d6c585', mineable: true },
+            WOOD: { id: 5, name: '나무', color: '#5c4018', mineable: true },
+            LEAVES: { id: 6, name: '나뭇잎', color: '#2d6e32', transparent: true, mineable: true },
+            WATER: { id: 7, name: '물', color: '#1e68b8', transparent: true, opacity: 0.55, unmineable: true },
+            COAL: { id: 8, name: '석탄 광석', color: '#363636', mineable: true },
+            IRON: { id: 9, name: '철 광석', color: '#d8af93', mineable: true },
+            GOLD: { id: 10, name: '금 광석', color: '#fcd34d', mineable: true },
+            DIAMOND: { id: 11, name: '다이아몬드', color: '#38bdf8', mineable: true }
+        };
+
+        const inventory = {
+            1: 20, // GRASS
+            2: 20, // DIRT
+            3: 20, // STONE
+            4: 20, // SAND
+            5: 10, // WOOD
+            6: 10, // LEAVES
+            8: 5,  // COAL
+            9: 2,  // IRON
+            10: 1, // GOLD
+            11: 1  // DIAMOND
+        };
+
+        const SELECTABLE_BLOCKS = [
+            BLOCK_TYPES.GRASS,
+            BLOCK_TYPES.DIRT,
+            BLOCK_TYPES.STONE,
+            BLOCK_TYPES.SAND,
+            BLOCK_TYPES.WOOD,
+            BLOCK_TYPES.LEAVES,
+            BLOCK_TYPES.COAL,
+            BLOCK_TYPES.IRON,
+            BLOCK_TYPES.GOLD,
+            BLOCK_TYPES.DIAMOND
+        ];
+
+        let selectedBlockIndex = 0;
+
+        // --- Procedural Texture Generator ---
+        function createBlockTextures() {
+            const materials = {};
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+
+            function generateNoiseCanvas(baseColor, noiseIntensity = 20, pattern = null, spotColor = null) {
+                ctx.fillStyle = baseColor;
+                ctx.fillRect(0, 0, 64, 64);
+
+                // Add pixel noise
+                for (let x = 0; x < 64; x += 4) {
+                    for (let y = 0; y < 64; y += 4) {
+                        const val = (Math.random() - 0.5) * noiseIntensity;
+                        ctx.fillStyle = `rgba(${val > 0 ? 255 : 0}, ${val > 0 ? 255 : 0}, ${val > 0 ? 255 : 0}, ${Math.abs(val)/100})`;
+                        ctx.fillRect(x, y, 4, 4);
+                    }
+                }
+
+                if (pattern === 'ore' && spotColor) {
+                    // Generate Ore spots
+                    for (let i = 0; i < 7; i++) {
+                        const ox = Math.floor(Math.random() * 48) + 8;
+                        const oy = Math.floor(Math.random() * 48) + 8;
+                        ctx.fillStyle = spotColor;
+                        ctx.fillRect(ox, oy, 8, 8);
+                        ctx.fillRect(ox + 4, oy - 4, 4, 4);
+                        ctx.fillRect(ox - 4, oy + 4, 4, 4);
+                    }
+                } else if (pattern === 'wood') {
+                    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                    for (let y = 0; y < 64; y += 8) {
+                        ctx.fillRect(0, y, 64, 2);
+                    }
+                } else if (pattern === 'leaves') {
+                    ctx.fillStyle = '#1c4d22';
+                    for (let i = 0; i < 40; i++) {
+                        const lx = Math.floor(Math.random() * 60);
+                        const ly = Math.floor(Math.random() * 60);
+                        ctx.fillRect(lx, ly, 6, 6);
+                    }
+                } else if (pattern === 'water') {
+                    // Fluid animated-like subtle water pattern
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                    for (let i = 0; i < 12; i++) {
+                        const wx = Math.floor(Math.random() * 56);
+                        const wy = Math.floor(Math.random() * 56);
+                        ctx.fillRect(wx, wy, 12, 3);
+                    }
+                }
+
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.magFilter = THREE.NearestFilter;
+                texture.minFilter = THREE.NearestFilter;
+                return texture;
+            }
+
+            // Generate textures for each type
+            const dirtTex = generateNoiseCanvas(BLOCK_TYPES.DIRT.color, 25);
+            const grassTopTex = generateNoiseCanvas(BLOCK_TYPES.GRASS.topColor, 30);
+            const stoneTex = generateNoiseCanvas(BLOCK_TYPES.STONE.color, 35);
+            const sandTex = generateNoiseCanvas(BLOCK_TYPES.SAND.color, 15);
+            const woodTex = generateNoiseCanvas(BLOCK_TYPES.WOOD.color, 20, 'wood');
+            const leavesTex = generateNoiseCanvas(BLOCK_TYPES.LEAVES.color, 30, 'leaves');
+            const waterTex = generateNoiseCanvas(BLOCK_TYPES.WATER.color, 15, 'water');
+
+            // Side texture for grass (top green, bottom dirt)
+            ctx.fillStyle = BLOCK_TYPES.DIRT.color;
+            ctx.fillRect(0, 0, 64, 64);
+            for (let x = 0; x < 64; x += 4) {
+                for (let y = 0; y < 64; y += 4) {
+                    const val = (Math.random() - 0.5) * 20;
+                    ctx.fillStyle = `rgba(${val > 0 ? 255 : 0}, ${val > 0 ? 255 : 0}, ${val > 0 ? 255 : 0}, ${Math.abs(val)/100})`;
+                    ctx.fillRect(x, y, 4, 4);
+                }
+            }
+            ctx.fillStyle = BLOCK_TYPES.GRASS.topColor;
+            ctx.fillRect(0, 0, 64, 20);
+            for (let x = 0; x < 64; x += 4) {
+                const depth = 20 + Math.floor(Math.random() * 12);
+                ctx.fillRect(x, 20, 4, depth - 20);
+            }
+            const grassSideTex = new THREE.CanvasTexture(canvas);
+            grassSideTex.magFilter = THREE.NearestFilter;
+            grassSideTex.minFilter = THREE.NearestFilter;
+
+            // Materials list creation
+            materials[BLOCK_TYPES.GRASS.id] = [
+                new THREE.MeshLambertMaterial({ map: grassSideTex }),
+                new THREE.MeshLambertMaterial({ map: grassSideTex }),
+                new THREE.MeshLambertMaterial({ map: grassTopTex }),
+                new THREE.MeshLambertMaterial({ map: dirtTex }),
+                new THREE.MeshLambertMaterial({ map: grassSideTex }),
+                new THREE.MeshLambertMaterial({ map: grassSideTex })
+            ];
+            materials[BLOCK_TYPES.DIRT.id] = new THREE.MeshLambertMaterial({ map: dirtTex });
+            materials[BLOCK_TYPES.STONE.id] = new THREE.MeshLambertMaterial({ map: stoneTex });
+            materials[BLOCK_TYPES.SAND.id] = new THREE.MeshLambertMaterial({ map: sandTex });
+            materials[BLOCK_TYPES.WOOD.id] = new THREE.MeshLambertMaterial({ map: woodTex });
+            materials[BLOCK_TYPES.LEAVES.id] = new THREE.MeshLambertMaterial({ map: leavesTex, transparent: true, opacity: 0.9 });
+            
+            // High-quality fluid water material with zero depthWrite to avoid white ice box artifacts
+            materials[BLOCK_TYPES.WATER.id] = new THREE.MeshLambertMaterial({
+                map: waterTex,
+                transparent: true,
+                opacity: BLOCK_TYPES.WATER.opacity,
+                depthWrite: false,
+                side: THREE.DoubleSide
+            });
+
+            materials[BLOCK_TYPES.COAL.id] = new THREE.MeshLambertMaterial({ map: generateNoiseCanvas(BLOCK_TYPES.STONE.color, 35, 'ore', '#222222') });
+            materials[BLOCK_TYPES.IRON.id] = new THREE.MeshLambertMaterial({ map: generateNoiseCanvas(BLOCK_TYPES.STONE.color, 35, 'ore', '#d8af93') });
+            materials[BLOCK_TYPES.GOLD.id] = new THREE.MeshLambertMaterial({ map: generateNoiseCanvas(BLOCK_TYPES.STONE.color, 35, 'ore', '#fcd34d') });
+            materials[BLOCK_TYPES.DIAMOND.id] = new THREE.MeshLambertMaterial({ map: generateNoiseCanvas(BLOCK_TYPES.STONE.color, 35, 'ore', '#38bdf8') });
+
+            return materials;
+        }
+
+        // --- Game Variables & Setup ---
+        const WORLD_SIZE = 48; // Expanded world grid (48x48)
+        const WATER_LEVEL = 4;
+        const BLOCK_SIZE = 1;
+
+        let scene, camera, renderer;
+        let blockMaterials;
+        const blocksMap = new Map(); // Key: 'x,y,z', Value: Mesh
+        const blockTypeMap = new Map(); // Key: 'x,y,z', Value: BlockType ID
+        const droppedItems = []; // List of dropped item objects in world
+
+        // Player & Control State
+        const player = {
+            position: new THREE.Vector3(0, 15, 0),
+            velocity: new THREE.Vector3(),
+            height: 1.6,
+            crouchHeight: 1.2,
+            isCrouching: false,
+            radius: 0.3,
+            onGround: false,
+            inWater: false
+        };
+
+        const keys = {};
+        let isTouchDevice = false;
+        let pointerLocked = false;
+
+        // Mobile Touch Variables
+        let touchLookId = null;
+        let lastTouchX = 0, lastTouchY = 0;
+        const joystick = { active: false, id: null, startX: 0, startY: 0, deltaX: 0, deltaY: 0 };
+
+        // Raycasting & Highlight
+        const raycaster = new THREE.Raycaster();
+        let wireframeBox;
+
+        // --- Init Function ---
+        function init() {
+            // Check mobile device
+            isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb);
+            scene.fog = new THREE.FogExp2(0x87ceeb, 0.025);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.rotation.order = 'YXZ';
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+            dirLight.position.set(40, 60, 20);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 150;
+            const d = 40;
+            dirLight.shadow.camera.left = -d;
+            dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d;
+            dirLight.shadow.camera.bottom = -d;
+            scene.add(dirLight);
+
+            // Load Materials
+            blockMaterials = createBlockTextures();
+
+            // Highlight Wireframe Box
+            const wireframeGeo = new THREE.BoxGeometry(1.005, 1.005, 1.005);
+            const wireframeMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+            wireframeBox = new THREE.LineSegments(new THREE.EdgesGeometry(wireframeGeo), wireframeMat);
+            wireframeBox.visible = false;
+            scene.add(wireframeBox);
+
+            // Build UI & Generate World
+            setupHotbar();
+            generateWorld();
+
+            // Set Initial Spawn Height above land
+            const spawnY = getTerrainHeight(0, 0) + 3;
+            player.position.set(0, Math.max(spawnY, WATER_LEVEL + 3), 0);
+
+            // Setup Listeners
+            setupEventListeners();
+            if (isTouchDevice) {
+                setupMobileControls();
+            }
+
+            // Start Render Loop
+            animate();
+        }
+
+        // --- Terrain Height Helper ---
+        function getTerrainHeight(x, z) {
+            const scale = 0.05;
+            const detailScale = 0.15;
+            const h1 = simplex.noise2D(x * scale, z * scale) * 6;
+            const h2 = simplex.noise2D(x * detailScale, z * detailScale) * 2;
+            return Math.floor(h1 + h2 + 6);
+        }
+
+        // --- World Generation ---
+        function generateWorld() {
+            const half = Math.floor(WORLD_SIZE / 2);
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+
+            for (let x = -half; x < half; x++) {
+                for (let z = -half; z < half; z++) {
+                    const height = getTerrainHeight(x, z);
+
+                    // Generate vertical terrain stack
+                    for (let y = 0; y <= Math.max(height, WATER_LEVEL); y++) {
+                        let type = null;
+
+                        if (y <= height) {
+                            if (y === height) {
+                                type = (height <= WATER_LEVEL + 1) ? BLOCK_TYPES.SAND : BLOCK_TYPES.GRASS;
+                            } else if (y > height - 3) {
+                                type = (height <= WATER_LEVEL + 1) ? BLOCK_TYPES.SAND : BLOCK_TYPES.DIRT;
+                            } else {
+                                // Underground Ores
+                                const rand = Math.random();
+                                if (y < 3 && rand < 0.05) type = BLOCK_TYPES.DIAMOND;
+                                else if (y < 5 && rand < 0.08) type = BLOCK_TYPES.GOLD;
+                                else if (y < 8 && rand < 0.12) type = BLOCK_TYPES.IRON;
+                                else if (rand < 0.18) type = BLOCK_TYPES.COAL;
+                                else type = BLOCK_TYPES.STONE;
+                            }
+                        } else if (y <= WATER_LEVEL) {
+                            type = BLOCK_TYPES.WATER; // Water body
+                        }
+
+                        if (type) {
+                            createBlock(x, y, z, type, geometry);
+                        }
+                    }
+
+                    // Trees on Grass hills
+                    if (height > WATER_LEVEL + 1 && Math.random() < 0.018 && x > -half + 2 && x < half - 2 && z > -half + 2 && z < half - 2) {
+                        createTree(x, height + 1, z, geometry);
+                    }
+                }
+            }
+        }
+
+        function createTree(x, startY, z, geometry) {
+            const trunkHeight = 4 + Math.floor(Math.random() * 2);
+            // Trunk
+            for (let i = 0; i < trunkHeight; i++) {
+                createBlock(x, startY + i, z, BLOCK_TYPES.WOOD, geometry);
+            }
+            // Leaves
+            const leafStart = startY + trunkHeight - 2;
+            for (let lx = x - 2; lx <= x + 2; lx++) {
+                for (let lz = z - 2; lz <= z + 2; lz++) {
+                    for (let ly = leafStart; ly <= leafStart + 2; ly++) {
+                        if (Math.abs(lx - x) === 2 && Math.abs(lz - z) === 2 && ly === leafStart + 2) continue;
+                        if (!blocksMap.has(`${lx},${ly},${lz}`)) {
+                            createBlock(lx, ly, lz, BLOCK_TYPES.LEAVES, geometry);
+                        }
+                    }
+                }
+            }
+        }
+
+        function createBlock(x, y, z, type, geometry = new THREE.BoxGeometry(1, 1, 1)) {
+            const key = `${x},${y},${z}`;
+            if (blocksMap.has(key)) return;
+
+            const mat = blockMaterials[type.id];
+            const mesh = new THREE.Mesh(geometry, mat);
+            mesh.position.set(x, y, z);
+            
+            if (type.id !== BLOCK_TYPES.WATER.id) {
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+            }
+
+            scene.add(mesh);
+            blocksMap.set(key, mesh);
+            blockTypeMap.set(key, type.id);
+        }
+
+        function removeBlock(x, y, z) {
+            const key = `${x},${y},${z}`;
+            const mesh = blocksMap.get(key);
+            const typeId = blockTypeMap.get(key);
+            
+            // Water block cannot be broken/mined
+            if (typeId === BLOCK_TYPES.WATER.id) return false;
+
+            if (mesh) {
+                // Drop 3D Mini Item
+                spawnDroppedItem(x, y, z, typeId);
+
+                scene.remove(mesh);
+                if (mesh.geometry && mesh.geometry !== geometry) mesh.geometry.dispose();
+                blocksMap.delete(key);
+                blockTypeMap.delete(key);
+                return true;
+            }
+            return false;
+        }
+
+        // --- Dropped Item Drop & Pickup System ---
+        const itemGeometry = new THREE.BoxGeometry(0.25, 0.25, 0.25);
+        function spawnDroppedItem(x, y, z, typeId) {
+            const mat = Array.isArray(blockMaterials[typeId]) ? blockMaterials[typeId][0] : blockMaterials[typeId];
+            const itemMesh = new THREE.Mesh(itemGeometry, mat);
+            itemMesh.position.set(x + (Math.random()-0.5)*0.3, y + 0.2, z + (Math.random()-0.5)*0.3);
+
+            const itemObj = {
+                mesh: itemMesh,
+                typeId: typeId,
+                velocity: new THREE.Vector3((Math.random()-0.5)*2, 3, (Math.random()-0.5)*2),
+                spawnTime: Date.now()
+            };
+
+            scene.add(itemMesh);
+            droppedItems.push(itemObj);
+        }
+
+        function updateDroppedItems(delta) {
+            const now = Date.now();
+            for (let i = droppedItems.length - 1; i >= 0; i--) {
+                const item = droppedItems[i];
+                
+                // Rotation
+                item.mesh.rotation.y += delta * 2;
+
+                // Simple Gravity & Float
+                item.velocity.y -= 9.8 * delta;
+                item.mesh.position.addScaledVector(item.velocity, delta);
+
+                // Ground Collision for items
+                const ix = Math.round(item.mesh.position.x);
+                const iy = Math.floor(item.mesh.position.y);
+                const iz = Math.round(item.mesh.position.z);
+                if (blocksMap.has(`${ix},${iy},${iz}`)) {
+                    item.mesh.position.y = iy + 0.6;
+                    item.velocity.set(0, 0, 0);
+                }
+
+                // Pickup Collision check with player
+                const dist = player.position.distanceTo(item.mesh.position);
+                if (dist < 1.8 && (now - item.spawnTime > 400)) { // 0.4s pickup delay
+                    // Magnetic pull towards player
+                    item.mesh.position.lerp(player.position, delta * 8);
+
+                    if (dist < 0.6) {
+                        // Collect Item
+                        inventory[item.typeId] = (inventory[item.typeId] || 0) + 1;
+                        updateHotbarUI();
+
+                        scene.remove(item.mesh);
+                        droppedItems.splice(i, 1);
+                    }
+                }
+            }
+        }
+
+        // --- Hotbar & UI ---
+        function setupHotbar() {
+            const hotbarEl = document.getElementById('hotbar');
+            hotbarEl.innerHTML = '';
+
+            SELECTABLE_BLOCKS.forEach((block, index) => {
+                const slot = document.createElement('div');
+                slot.className = `hotbar-slot relative rounded-lg flex items-center justify-center cursor-pointer ${index === selectedBlockIndex ? 'active' : ''}`;
+                
+                // Color preview
+                const icon = document.createElement('div');
+                icon.className = 'w-7 h-7 rounded border border-black/40 shadow-inner';
+                icon.style.backgroundColor = block.topColor || block.color;
+                
+                // Count Badge
+                const countBadge = document.createElement('span');
+                countBadge.className = 'absolute bottom-0 right-1 text-[10px] font-extrabold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)]';
+                countBadge.id = `slot-count-${block.id}`;
+                countBadge.innerText = inventory[block.id] || 0;
+
+                slot.appendChild(icon);
+                slot.appendChild(countBadge);
+
+                slot.addEventListener('click', () => {
+                    selectSlot(index);
+                });
+
+                hotbarEl.appendChild(slot);
+            });
+        }
+
+        function updateHotbarUI() {
+            SELECTABLE_BLOCKS.forEach((block, index) => {
+                const countBadge = document.getElementById(`slot-count-${block.id}`);
+                if (countBadge) {
+                    countBadge.innerText = inventory[block.id] || 0;
+                }
+            });
+        }
+
+        function selectSlot(index) {
+            selectedBlockIndex = index;
+            const slots = document.querySelectorAll('.hotbar-slot');
+            slots.forEach((s, i) => {
+                if (i === index) s.classList.add('active');
+                else s.classList.remove('active');
+            });
+        }
+
+        // --- Event Listeners ---
+        function setupEventListeners() {
+            const instructions = document.getElementById('instructions');
+
+            instructions.addEventListener('click', () => {
+                instructions.style.display = 'none';
+                if (!isTouchDevice) {
+                    renderer.domElement.requestPointerLock();
+                }
+            });
+
+            document.addEventListener('pointerlockchange', () => {
+                pointerLocked = (document.pointerLockElement === renderer.domElement);
+                if (!pointerLocked && !isTouchDevice) {
+                    instructions.style.display = 'flex';
+                }
+            });
+
+            // Keyboard Controls
+            window.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                if (e.code.startsWith('Digit')) {
+                    const num = parseInt(e.code.replace('Digit', ''));
+                    if (num >= 1 && num <= SELECTABLE_BLOCKS.length) {
+                        selectSlot(num - 1);
+                    }
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                keys[e.code] = false;
+            });
+
+            // Mouse Look
+            window.addEventListener('mousemove', (e) => {
+                if (pointerLocked) {
+                    camera.rotation.y -= e.movementX * 0.0025;
+                    camera.rotation.x -= e.movementY * 0.0025;
+                    camera.rotation.x = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, camera.rotation.x));
+                }
+            });
+
+            // Mouse Clicks for Place / Destroy
+            window.addEventListener('mousedown', (e) => {
+                if (!pointerLocked) return;
+                if (e.button === 0) performAction('destroy');
+                if (e.button === 2) performAction('place');
+            });
+
+            window.addEventListener('contextmenu', e => e.preventDefault());
+
+            // Scroll for hotbar
+            window.addEventListener('wheel', (e) => {
+                if (!pointerLocked) return;
+                if (e.deltaY > 0) {
+                    selectSlot((selectedBlockIndex + 1) % SELECTABLE_BLOCKS.length);
+                } else {
+                    selectSlot((selectedBlockIndex - 1 + SELECTABLE_BLOCKS.length) % SELECTABLE_BLOCKS.length);
+                }
+            });
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        // --- Mobile Touch Controls Setup ---
+        function setupMobileControls() {
+            document.getElementById('mobile-controls').classList.remove('hidden');
+            document.getElementById('joystick-container').style.display = 'block';
+            document.getElementById('touch-look-area').style.display = 'block';
+
+            // Joystick Logic
+            const jsContainer = document.getElementById('joystick-container');
+            const jsKnob = document.getElementById('joystick-knob');
+
+            jsContainer.addEventListener('touchstart', (e) => {
+                const touch = e.targetTouches[0];
+                joystick.active = true;
+                joystick.id = touch.identifier;
+                joystick.startX = touch.clientX;
+                joystick.startY = touch.clientY;
+            }, { passive: false });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!joystick.active) return;
+                for (let touch of e.changedTouches) {
+                    if (touch.identifier === joystick.id) {
+                        let dx = touch.clientX - joystick.startX;
+                        let dy = touch.clientY - joystick.startY;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        const maxDist = 35;
+
+                        if (dist > maxDist) {
+                            dx = (dx / dist) * maxDist;
+                            dy = (dy / dist) * maxDist;
+                        }
+
+                        jsKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+                        joystick.deltaX = dx / maxDist;
+                        joystick.deltaY = dy / maxDist;
+                    }
+                }
+            }, { passive: false });
+
+            const resetJoystick = (e) => {
+                for (let touch of e.changedTouches) {
+                    if (touch.identifier === joystick.id) {
+                        joystick.active = false;
+                        joystick.deltaX = 0;
+                        joystick.deltaY = 0;
+                        jsKnob.style.transform = `translate(0px, 0px)`;
+                    }
+                }
+            };
+            window.addEventListener('touchend', resetJoystick);
+            window.addEventListener('touchcancel', resetJoystick);
+
+            // Touch Look Area Logic
+            const lookArea = document.getElementById('touch-look-area');
+            lookArea.addEventListener('touchstart', (e) => {
+                const touch = e.targetTouches[0];
+                touchLookId = touch.identifier;
+                lastTouchX = touch.clientX;
+                lastTouchY = touch.clientY;
+            }, { passive: false });
+
+            lookArea.addEventListener('touchmove', (e) => {
+                for (let touch of e.changedTouches) {
+                    if (touch.identifier === touchLookId) {
+                        const dx = touch.clientX - lastTouchX;
+                        const dy = touch.clientY - lastTouchY;
+
+                        camera.rotation.y -= dx * 0.005;
+                        camera.rotation.x -= dy * 0.005;
+                        camera.rotation.x = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, camera.rotation.x));
+
+                        lastTouchX = touch.clientX;
+                        lastTouchY = touch.clientY;
+                    }
+                }
+            }, { passive: false });
+
+            // Mobile Action Buttons
+            document.getElementById('btn-jump').addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keys['Space'] = true;
+            });
+            document.getElementById('btn-jump').addEventListener('touchend', () => { keys['Space'] = false; });
+
+            document.getElementById('btn-destroy').addEventListener('click', (e) => {
+                e.preventDefault();
+                performAction('destroy');
+            });
+            document.getElementById('btn-place').addEventListener('click', (e) => {
+                e.preventDefault();
+                performAction('place');
+            });
+
+            // Mobile Crouch Toggle Button
+            document.getElementById('btn-crouch').addEventListener('click', (e) => {
+                e.preventDefault();
+                player.isCrouching = !player.isCrouching;
+                const btn = document.getElementById('btn-crouch');
+                if (player.isCrouching) {
+                    btn.classList.add('bg-yellow-600/80', 'border-yellow-400');
+                } else {
+                    btn.classList.remove('bg-yellow-600/80', 'border-yellow-400');
+                }
+            });
+        }
+
+        // --- Raycasting Action (Mine & Place) ---
+        function performAction(action) {
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(Array.from(blocksMap.values()));
+
+            if (intersects.length > 0) {
+                const hit = intersects[0];
+                if (hit.distance > 6.5) return; // Reach limit
+
+                const pos = hit.object.position;
+
+                if (action === 'destroy') {
+                    removeBlock(pos.x, pos.y, pos.z);
+                } else if (action === 'place') {
+                    const normal = hit.face.normal;
+                    const targetX = pos.x + normal.x;
+                    const targetY = pos.y + normal.y;
+                    const targetZ = pos.z + normal.z;
+
+                    const selectedType = SELECTABLE_BLOCKS[selectedBlockIndex];
+
+                    // Check Inventory count
+                    if (!inventory[selectedType.id] || inventory[selectedType.id] <= 0) {
+                        return; // Out of block stock
+                    }
+
+                    // Player bounding box collision test
+                    const currentEyeHeight = player.isCrouching ? player.crouchHeight : player.height;
+                    const playerBox = new THREE.Box3(
+                        new THREE.Vector3(player.position.x - player.radius, player.position.y - currentEyeHeight, player.position.z - player.radius),
+                        new THREE.Vector3(player.position.x + player.radius, player.position.y + 0.2, player.position.z + player.radius)
+                    );
+
+                    const blockBox = new THREE.Box3(
+                        new THREE.Vector3(targetX - 0.5, targetY - 0.5, targetZ - 0.5),
+                        new THREE.Vector3(targetX + 0.5, targetY + 0.5, targetZ + 0.5)
+                    );
+
+                    if (!playerBox.intersectsBox(blockBox)) {
+                        createBlock(targetX, targetY, targetZ, selectedType);
+                        inventory[selectedType.id]--;
+                        updateHotbarUI();
+                    }
+                }
+            }
+        }
+
+        // --- Collision Helper ---
+        function checkCollision(pos, currentHeight) {
+            const minX = Math.floor(pos.x - player.radius + 0.5);
+            const maxX = Math.floor(pos.x + player.radius + 0.5);
+            const minY = Math.floor(pos.y - currentHeight + 0.05);
+            const maxY = Math.floor(pos.y + 0.1);
+            const minZ = Math.floor(pos.z - player.radius + 0.5);
+            const maxZ = Math.floor(pos.z + player.radius + 0.5);
+
+            for (let x = minX; x <= maxX; x++) {
+                for (let y = minY; y <= maxY; y++) {
+                    for (let z = minZ; z <= maxZ; z++) {
+                        const key = `${x},${y},${z}`;
+                        if (blocksMap.has(key)) {
+                            // Water does not block player movement
+                            if (blockTypeMap.get(key) !== BLOCK_TYPES.WATER.id) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        // --- Main Physics & Motion Update ---
+        function updatePlayer(delta) {
+            // Crouch State (Shift key or Mobile Toggle)
+            if (!isTouchDevice) {
+                player.isCrouching = keys['ShiftLeft'] || keys['ShiftRight'];
+            }
+            const currentHeight = player.isCrouching ? player.crouchHeight : player.height;
+            const speedMultiplier = player.isCrouching ? 0.45 : 1.0;
+
+            // Check if player is standing inside water
+            const pHeadY = Math.floor(player.position.y);
+            const pFeetY = Math.floor(player.position.y - currentHeight + 0.2);
+            const px = Math.round(player.position.x);
+            const pz = Math.round(player.position.z);
+
+            const isFeetWater = blockTypeMap.get(`${px},${pFeetY},${pz}`) === BLOCK_TYPES.WATER.id;
+            const isHeadWater = blockTypeMap.get(`${px},${pHeadY},${pz}`) === BLOCK_TYPES.WATER.id;
+            player.inWater = isFeetWater || isHeadWater;
+
+            // Underwater Overlay UI Toggle
+            document.getElementById('underwater-overlay').style.display = isHeadWater ? 'block' : 'none';
+
+            // Calculate Forward & Right Movement
+            const moveVector = new THREE.Vector3();
+            if (keys['KeyW']) moveVector.z -= 1;
+            if (keys['KeyS']) moveVector.z += 1;
+            if (keys['KeyA']) moveVector.x -= 1;
+            if (keys['KeyD']) moveVector.x += 1;
+
+            if (joystick.active) {
+                moveVector.x = joystick.deltaX;
+                moveVector.z = joystick.deltaY;
+            }
+
+            moveVector.normalize();
+
+            const moveSpeed = 5.5 * speedMultiplier;
+            const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camera.rotation.y);
+            const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), camera.rotation.y);
+
+            const targetVelocity = new THREE.Vector3()
+                .addScaledVector(forward, -moveVector.z * moveSpeed)
+                .addScaledVector(right, moveVector.x * moveSpeed);
+
+            player.velocity.x = targetVelocity.x;
+            player.velocity.z = targetVelocity.z;
+
+            // Vertical Movement & Gravity/Swimming Physics
+            if (player.inWater) {
+                // Water Physics: Buoyancy & Swimming
+                player.velocity.y -= 4.0 * delta; // Reduced gravity in water
+                player.velocity.y = Math.max(player.velocity.y, -2.5); // Terminal velocity in water
+
+                // Swim Upwards when holding Jump (Space)
+                if (keys['Space']) {
+                    player.velocity.y = 3.5;
+                }
+            } else {
+                // Normal Air/Land Gravity Physics
+                player.velocity.y -= 22.0 * delta; // Gravity
+
+                // Jump
+                if (keys['Space'] && player.onGround) {
+                    player.velocity.y = 7.8;
+                    player.onGround = false;
+                }
+            }
+
+            // --- Movement Collision Processing ---
+            // Axis X Move
+            const oldX = player.position.x;
+            player.position.x += player.velocity.x * delta;
+            if (checkCollision(player.position, currentHeight)) {
+                player.position.x = oldX;
+            }
+
+            // Axis Z Move
+            const oldZ = player.position.z;
+            player.position.z += player.velocity.z * delta;
+            if (checkCollision(player.position, currentHeight)) {
+                player.position.z = oldZ;
+            }
+
+            // Crouch Edge Protection Guard (Minecraft Sneak Edge Protection)
+            if (player.isCrouching && player.onGround && !player.inWater) {
+                const testPos = player.position.clone();
+                const feetYBelow = Math.floor(player.position.y - currentHeight - 0.2);
+                const testX = Math.round(testPos.x);
+                const testZ = Math.round(testPos.z);
+                
+                // If there's no block below where player is stepping, rollback movement
+                if (!blocksMap.has(`${testX},${feetYBelow},${testZ}`)) {
+                    player.position.x = oldX;
+                    player.position.z = oldZ;
+                }
+            }
+
+            // Axis Y Move
+            player.position.y += player.velocity.y * delta;
+            if (checkCollision(player.position, currentHeight)) {
+                if (player.velocity.y < 0) {
+                    player.onGround = true;
+                    player.velocity.y = 0;
+                } else if (player.velocity.y > 0) {
+                    player.velocity.y = 0;
+                }
+                player.position.y = Math.round(player.position.y * 100) / 100;
+            } else {
+                if (!player.inWater) {
+                    player.onGround = false;
+                }
+            }
+
+            // Respawn if fell out of world map
+            if (player.position.y < -30) {
+                player.position.set(0, 20, 0);
+                player.velocity.set(0, 0, 0);
+            }
+
+            // Sync Camera Position
+            camera.position.copy(player.position);
+        }
+
+        // --- Raycast Target Highlight ---
+        function updateRaycastHighlight() {
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(Array.from(blocksMap.values()));
+
+            if (intersects.length > 0 && intersects[0].distance <= 6.5) {
+                const pos = intersects[0].object.position;
+                wireframeBox.position.copy(pos);
+                wireframeBox.visible = true;
+            } else {
+                wireframeBox.visible = false;
+            }
+        }
+
+        // --- Main Animation Loop ---
+        let lastTime = performance.now();
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const now = performance.now();
+            const delta = Math.min((now - lastTime) / 1000, 0.1);
+            lastTime = now;
+
+            updatePlayer(delta);
+            updateDroppedItems(delta);
+            updateRaycastHighlight();
+
+            renderer.render(scene, camera);
+        }
+
+        // Start Application
+        window.onload = init;
+    </script>
+</body>
+</html>
