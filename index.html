@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>웹 마인크래프트 멀티 & 캐릭터/닉네임</title>
+    <title>웹 마인크래프트 멀티 & 동물 시스템</title>
     
     <!-- 구글 애드센스 스크립트 -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2157167042014574"
@@ -44,7 +44,7 @@
         }
         .slot.selected { border-color: #55ff55; background: rgba(255,255,255,0.3); }
 
-        /* 모바일 / 패드 터치용 UI 컨트롤러 */
+        /* 터치 컨트롤러 UI */
         .touch-btn {
             pointer-events: auto; background: rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.4);
             color: white; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center;
@@ -157,7 +157,7 @@
         };
 
         const blockNames = { 1: '잔디', 2: '흙', 3: '돌', 4: '원목', 5: '나뭇잎' };
-        const SAVE_KEY = 'MINECRAFT_WORLD_DATA_V3';
+        const SAVE_KEY = 'MINECRAFT_WORLD_DATA_V4';
 
         function saveWorldLocally() {
             const arr = Array.from(world.entries());
@@ -240,6 +240,131 @@
             });
         }
         renderWorld();
+
+        // --- 3D 동물(돼지, 소, 닭) 생성 및 AI 시스템 ---
+        const animals = [];
+
+        function createPig() {
+            const group = new THREE.Group();
+            const mat = new THREE.MeshLambertMaterial({ color: 0xffb6c1 }); // 분홍색
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 1.0), mat);
+            body.position.y = 0.5;
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), mat);
+            head.position.set(0, 0.7, 0.6);
+            const snout = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.1), new THREE.MeshLambertMaterial({ color: 0xffa0b0 }));
+            snout.position.set(0, 0.65, 0.9);
+            group.add(body, head, snout);
+
+            const legGeo = new THREE.BoxGeometry(0.2, 0.4, 0.2);
+            [[-0.25, 0.2, 0.35], [0.25, 0.2, 0.35], [-0.25, 0.2, -0.35], [0.25, 0.2, -0.35]].forEach(p => {
+                const leg = new THREE.Mesh(legGeo, mat);
+                leg.position.set(...p);
+                group.add(leg);
+            });
+            return group;
+        }
+
+        function createCow() {
+            const group = new THREE.Group();
+            const mat = new THREE.MeshLambertMaterial({ color: 0x443322 }); // 얼룩소
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.8, 1.2), mat);
+            body.position.y = 0.7;
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), mat);
+            head.position.set(0, 1.0, 0.7);
+            group.add(body, head);
+
+            const legGeo = new THREE.BoxGeometry(0.25, 0.6, 0.25);
+            [[-0.3, 0.3, 0.4], [0.3, 0.3, 0.4], [-0.3, 0.3, -0.4], [0.3, 0.3, -0.4]].forEach(p => {
+                const leg = new THREE.Mesh(legGeo, mat);
+                leg.position.set(...p);
+                group.add(leg);
+            });
+            return group;
+        }
+
+        function createChicken() {
+            const group = new THREE.Group();
+            const whiteMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+            const redMat = new THREE.MeshLambertMaterial({ color: 0xff0000 });
+            const yellowMat = new THREE.MeshLambertMaterial({ color: 0xffaa00 });
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.5), whiteMat);
+            body.position.y = 0.4;
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), whiteMat);
+            head.position.set(0, 0.6, 0.25);
+            const beak = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.1, 0.15), yellowMat);
+            beak.position.set(0, 0.55, 0.45);
+            const comb = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.15), redMat);
+            comb.position.set(0, 0.8, 0.25);
+            group.add(body, head, beak, comb);
+
+            const legGeo = new THREE.BoxGeometry(0.08, 0.25, 0.08);
+            [[-0.1, 0.12, 0], [0.1, 0.12, 0]].forEach(p => {
+                const leg = new THREE.Mesh(legGeo, yellowMat);
+                leg.position.set(...p);
+                group.add(leg);
+            });
+            return group;
+        }
+
+        function spawnAnimals() {
+            const types = [createPig, createCow, createChicken];
+            for(let i=0; i<8; i++) {
+                const rx = Math.floor((Math.random() - 0.5) * 30);
+                const rz = Math.floor((Math.random() - 0.5) * 30);
+                
+                // 최고 표면 Y 높이 찾기
+                let ry = 10;
+                for(let y=15; y>=-5; y--) {
+                    if (world.has(`${rx},${y},${rz}`)) {
+                        ry = y + 1;
+                        break;
+                    }
+                }
+
+                const createFunc = types[Math.floor(Math.random() * types.length)];
+                const model = createFunc();
+                model.position.set(rx, ry, rz);
+                scene.add(model);
+
+                animals.push({
+                    mesh: model,
+                    vx: 0, vz: 0,
+                    changeTimer: 0
+                });
+            }
+        }
+        spawnAnimals();
+
+        function updateAnimals(delta) {
+            animals.forEach(anim => {
+                anim.changeTimer -= delta;
+                if (anim.changeTimer <= 0) {
+                    anim.changeTimer = 2 + Math.random() * 4; // 2~6초마다 방향 전환
+                    if (Math.random() < 0.6) {
+                        const angle = Math.random() * Math.PI * 2;
+                        anim.vx = Math.cos(angle) * 1.5;
+                        anim.vz = Math.sin(angle) * 1.5;
+                        anim.mesh.rotation.y = -angle + Math.PI/2;
+                    } else {
+                        anim.vx = 0; anim.vz = 0; // 정지
+                    }
+                }
+
+                anim.mesh.position.x += anim.vx * delta;
+                anim.mesh.position.z += anim.vz * delta;
+
+                // 동물 바닥 착지 높이 계산
+                const bx = Math.floor(anim.mesh.position.x);
+                const bz = Math.floor(anim.mesh.position.z);
+                for(let y=15; y>=-5; y--) {
+                    if (world.has(`${bx},${y},${bz}`)) {
+                        anim.mesh.position.y = y + 1;
+                        break;
+                    }
+                }
+            });
+        }
 
         // --- P2P 멀티플레이어 통신 ---
         let peer = null, connections = [], isHost = false, myId = '';
@@ -325,7 +450,7 @@
             }
         };
 
-        // --- 마인크래프트 스티브 모델 & 닉네임 생성기 ---
+        // --- 플레이어 스티브 모델 및 닉네임 ---
         const otherPlayers = {};
 
         function createNameTag(text) {
@@ -350,37 +475,24 @@
 
         function createSteveModel() {
             const group = new THREE.Group();
-            
             const headMat = new THREE.MeshLambertMaterial({ color: 0xd2b48c });
             const bodyMat = new THREE.MeshLambertMaterial({ color: 0x00ffff });
             const legMat = new THREE.MeshLambertMaterial({ color: 0x0000ff });
 
-            // 머리
             const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), headMat);
             head.position.y = 1.5;
-            group.add(head);
-
-            // 몸통
             const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.7, 0.25), bodyMat);
             body.position.y = 0.9;
-            group.add(body);
 
-            // 왼팔 & 오른팔
             const armGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
-            const leftArm = new THREE.Mesh(armGeo, headMat);
-            leftArm.position.set(-0.35, 0.9, 0);
-            const rightArm = new THREE.Mesh(armGeo, headMat);
-            rightArm.position.set(0.35, 0.9, 0);
-            group.add(leftArm); group.add(rightArm);
+            const leftArm = new THREE.Mesh(armGeo, headMat); leftArm.position.set(-0.35, 0.9, 0);
+            const rightArm = new THREE.Mesh(armGeo, headMat); rightArm.position.set(0.35, 0.9, 0);
 
-            // 왼다리 & 오른다리
             const legGeo = new THREE.BoxGeometry(0.22, 0.75, 0.22);
-            const leftLeg = new THREE.Mesh(legGeo, legMat);
-            leftLeg.position.set(-0.13, 0.37, 0);
-            const rightLeg = new THREE.Mesh(legGeo, legMat);
-            rightLeg.position.set(0.13, 0.37, 0);
-            group.add(leftLeg); group.add(rightLeg);
+            const leftLeg = new THREE.Mesh(legGeo, legMat); leftLeg.position.set(-0.13, 0.37, 0);
+            const rightLeg = new THREE.Mesh(legGeo, legMat); rightLeg.position.set(0.13, 0.37, 0);
 
+            group.add(head, body, leftArm, rightArm, leftLeg, rightLeg);
             return group;
         }
 
@@ -392,8 +504,6 @@
                 scene.add(charGroup);
                 otherPlayers[id] = charGroup;
             }
-            
-            // 위치 부드럽게 보간 (Lerp)
             otherPlayers[id].position.lerp(new THREE.Vector3(x, y, z), 0.3);
             otherPlayers[id].rotation.y = ry;
         }
@@ -512,7 +622,6 @@
         }
         updateHotbar();
 
-        // 정밀한 충돌 판정 (1x1 구멍 통과 가능하게 히트박스 반경 0.28로 조정)
         function checkCollision(x, y, z) {
             const r = 0.28;
             const h = 1.6;
@@ -537,11 +646,18 @@
         let velocity = new THREE.Vector3();
         let canJump = false;
         let lastSendTime = 0;
+        let prevTime = performance.now();
 
         function animate() {
             requestAnimationFrame(animate);
 
-            // 가속 및 감속을 통한 부드러운 걷기 구현
+            const now = performance.now();
+            const delta = (now - prevTime) / 1000;
+            prevTime = now;
+
+            // 동물 AI 업데이트
+            updateAnimals(delta);
+
             const targetSpeed = inputState.sprint ? 10 : 6;
             const sin = Math.sin(camera.rotation.y);
             const cos = Math.cos(camera.rotation.y);
@@ -558,29 +674,25 @@
                 targetZ = (targetZ / len) * targetSpeed;
             }
 
-            // 부드러운 속도 보간 (Lerp)
             velocity.x += (targetX - velocity.x) * 0.15;
             velocity.z += (targetZ - velocity.z) * 0.15;
-            velocity.y -= 25 * 0.016; // 중력
+            velocity.y -= 25 * 0.016;
 
             if (inputState.jump && canJump) {
                 velocity.y = 8.5;
                 canJump = false;
             }
 
-            // X축 이동 & 충돌
             const nextX = camera.position.x + velocity.x * 0.016;
             if (!checkCollision(nextX, camera.position.y, camera.position.z)) {
                 camera.position.x = nextX;
             } else { velocity.x = 0; }
 
-            // Z축 이동 & 충돌
             const nextZ = camera.position.z + velocity.z * 0.016;
             if (!checkCollision(camera.position.x, camera.position.y, nextZ)) {
                 camera.position.z = nextZ;
             } else { velocity.z = 0; }
 
-            // Y축 이동 & 충돌
             const nextY = camera.position.y + velocity.y * 0.016;
             if (!checkCollision(camera.position.x, nextY, camera.position.z)) {
                 camera.position.y = nextY;
