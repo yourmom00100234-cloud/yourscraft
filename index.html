@@ -3,113 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>웹 마인크래프트 울트라 에디션 (광석, 몬스터, 제작, 바이옴)</title>
-    
-    <style>
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; font-family: 'Segoe UI', sans-serif; user-select: none;
-            background-color: #000; touch-action: none;
-        }
-        #canvas { width: 100%; height: 100%; display: block; }
-        
-        #ui {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 15px; box-sizing: border-box;
-        }
-        #hud { color: white; text-shadow: 1px 1px 2px black; font-size: 13px; line-height: 1.4; }
-        
-        #crosshair {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 16px; height: 16px; pointer-events: none;
-        }
-        #crosshair::before, #crosshair::after {
-            content: ''; position: absolute; background-color: rgba(255, 255, 255, 0.8);
-        }
-        #crosshair::before { top: 7px; left: 0; width: 16px; height: 2px; }
-        #crosshair::after { top: 0; left: 7px; width: 2px; height: 16px; }
-
-        #hotbar {
-            display: flex; justify-content: center; gap: 4px; background: rgba(0,0,0,0.6);
-            padding: 6px; border-radius: 8px; pointer-events: auto; align-self: center; border: 2px solid rgba(255,255,255,0.2);
-        }
-        .slot {
-            width: 46px; height: 46px; background: rgba(0,0,0,0.5); border: 2px solid #444;
-            border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            position: relative; cursor: pointer; color: white; font-size: 10px; font-weight: bold; text-align: center;
-        }
-        .slot.selected { border-color: #55ff55; background: rgba(255,255,255,0.3); }
-        .slot .count { position: absolute; bottom: 2px; right: 4px; font-size: 11px; color: #fff; text-shadow: 1px 1px #000; }
-
-        /* 제작대 및 인벤토리 UI창 스타일 */
-        #crafting-modal {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(30,30,30,0.95); border: 3px solid #666; border-radius: 8px;
-            padding: 20px; color: white; width: 350px; display: none; pointer-events: auto; z-index: 20;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.7);
-        }
-        #crafting-modal h2 { margin-top: 0; color: #55ff55; font-size: 1.2rem; text-align: center; }
-        .craft-item {
-            background: rgba(255,255,255,0.1); padding: 8px 12px; margin: 6px 0; border-radius: 4px;
-            display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid #444;
-        }
-        .craft-item:hover { background: rgba(85,255,85,0.2); border-color: #55ff55; }
-
-        /* 터치 및 조작 버튼 */
-        .touch-btn {
-            pointer-events: auto; background: rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.4);
-            color: white; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center;
-            user-select: none;
-        }
-        #dpad {
-            position: absolute; bottom: 20px; left: 20px; width: 140px; height: 140px;
-            pointer-events: auto; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 2px;
-        }
-        #action-btns {
-            position: absolute; bottom: 25px; right: 20px; display: flex; gap: 8px; pointer-events: auto;
-        }
-        .act-btn { width: 55px; height: 55px; border-radius: 12px; font-size: 11px; }
-
-        /* 메뉴 화면 */
-        #menu {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: white; pointer-events: auto; text-align: center; z-index: 30;
-        }
-        #menu h1 { font-size: 2.5rem; color: #55ff55; margin-bottom: 15px; text-shadow: 3px 3px #00aa00; }
-        .menu-box { background: rgba(255,255,255,0.08); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); margin-bottom: 12px; width: 300px; }
-        input[type="text"] { width: 85%; padding: 8px; font-size: 15px; border-radius: 4px; border: none; margin-bottom: 8px; text-align: center; }
-        button { padding: 10px 20px; font-size: 14px; border: none; border-radius: 4px; background: #55ff55; color: #000; font-weight: bold; cursor: pointer; }
-        button.danger { background: #ff4444; color: white; margin-top: 5px; }
-    </style>
+    <title>웹 마인크래프트 프로덕션 에디션</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <canvas id="canvas"></canvas>
     
+    <!-- 게임 HUD 정보 -->
     <div id="ui">
         <div id="hud">
-            <div id="status" style="color: #ffaa00; font-weight: bold;">대기 중</div>
+            <div id="status" style="color: #ffaa00; font-weight: bold;">서버 대기 중</div>
             <div id="pos">XYZ: 0, 0, 0</div>
-            <div id="health">체력: ❤️❤️❤️❤️❤️</div>
-            <div id="mode-text" style="color: #55ff55; font-weight: bold; margin-top: 5px;">현재 모드: [부수기]</div>
+            <div id="online">접속자: 1명</div>
+            <div id="mode-text" style="color: #55ff55; font-weight: bold; margin-top: 4px;">모드: [부수기]</div>
         </div>
-        
         <div id="hotbar"></div>
     </div>
     
     <div id="crosshair"></div>
 
-    <!-- 제작대 UI 창 -->
+    <!-- 조합대(Crafting) 모달창 -->
     <div id="crafting-modal">
-        <h2>🛠 조합대 (제작)</h2>
-        <div class="craft-item" onclick="craftItem('wooden_pickaxe')"><span>나무 곡괭이</span><span>원목 3개</span></div>
-        <div class="craft-item" onclick="craftItem('stone_pickaxe')"><span>돌 곡괭이</span><span>돌 3개</span></div>
-        <div class="craft-item" onclick="craftItem('iron_sword')"><span>철 검</span><span>철광석 2개</span></div>
-        <div class="craft-item" onclick="craftItem('torch')"><span>횃불</span><span>원목 + 석탄</span></div>
-        <button onclick="toggleCrafting(false)" style="width:100%; margin-top:10px; background:#ff4444; color:white;">닫기 (E)</button>
+        <h2>🛠 조합대 (Crafting Table)</h2>
+        <div class="craft-item" onclick="player.craftItem('wooden_pickaxe')"><span>나무 곡괭이</span><span>원목 3개</span></div>
+        <div class="craft-item" onclick="player.craftItem('stone_pickaxe')"><span>돌 곡괭이</span><span>돌 3개</span></div>
+        <div class="craft-item" onclick="player.craftItem('iron_sword')"><span>철 검</span><span>철광석 2개</span></div>
+        <button onclick="document.getElementById('crafting-modal').style.display='none'" style="width:100%; margin-top:10px; background:#ff4444; color:white;">닫기 (E)</button>
     </div>
 
-    <!-- 모바일 터치 패드 -->
+    <!-- 모바일 터치 조이스틱 -->
     <div id="dpad">
         <div></div><button class="touch-btn" id="btn-up">▲</button><div></div>
         <button class="touch-btn" id="btn-left">◀</button><div></div><button class="touch-btn" id="btn-right">▶</button>
@@ -117,447 +39,854 @@
     </div>
 
     <div id="action-btns">
-        <button class="touch-btn act-btn" id="btn-craft" style="background: rgba(150, 50, 250, 0.7);">조합대</button>
+        <button class="touch-btn act-btn" id="btn-craft" style="background: rgba(150, 50, 250, 0.7);">조합</button>
         <button class="touch-btn act-btn" id="btn-mode" style="background: rgba(255, 170, 0, 0.7);">모드</button>
-        <button class="touch-btn act-btn" id="btn-action" style="background: rgba(255, 50, 50, 0.7);">파괴/설치</button>
+        <button class="touch-btn act-btn" id="btn-action" style="background: rgba(255, 50, 50, 0.7);">실행</button>
         <button class="touch-btn act-btn" id="btn-jump" style="background: rgba(50, 150, 255, 0.7);">점프</button>
     </div>
 
     <!-- 시작 메뉴 -->
     <div id="menu">
-        <h1>웹 마인크래프트 울트라</h1>
-        
+        <h1>MINECRAFT PROD</h1>
         <div class="menu-box">
-            <h3>프로필</h3>
-            <input type="text" id="nickname-input" placeholder="닉네임" value="스티브">
+            <h3>프로필 설정</h3>
+            <input type="text" id="nickname-input" placeholder="닉네임 입력" value="스티브">
         </div>
         <div class="menu-box">
-            <h3>멀티플레이</h3>
+            <h3>멀티플레이 호스트/게스트</h3>
             <button id="btn-create">방 만들기</button>
             <div id="my-room-id" style="margin-top: 5px; font-size: 12px; color: #55ff55;"></div>
-            <input type="text" id="join-room-id" placeholder="방 ID 입력" style="margin-top:8px;">
+            <input type="text" id="join-room-id" placeholder="방 ID 입력" style="margin-top: 6px;">
             <button id="btn-join">참가하기</button>
         </div>
         <div>
             <button id="btn-start" style="background:#00aaff; color:white; padding:12px 30px;">게임 시작</button><br>
-            <button id="btn-reset-map" class="danger">맵 초기화</button>
+            <button id="btn-reset-map" class="danger" style="margin-top:8px;">맵 전체 초기화</button>
         </div>
     </div>
 
-    <!-- Three.js & PeerJS -->
+    <!-- 외부 라이브러리 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
-    <script>
-        // --- 블록 정의 및 아이템 시스템 ---
-        // 1:잔디, 2:흙, 3:돌, 4:원목, 5:나뭇잎, 6:모래(사막), 7:눈(빙하), 8:석탄, 9:철, 10:구리, 11:금, 12:다이아몬드, 13:에메랄드
-        const blockNames = {
-            1: '잔디', 2: '흙', 3: '돌', 4: '원목', 5: '나뭇잎',
-            6: '모래', 7: '눈블록', 8: '석탄광석', 9: '철광석', 10: '구리광석',
-            11: '금광석', 12: '다이아광석', 13: '에메랄드광석'
-        };
-
-        const inventory = { 1: 10, 3: 20, 4: 15, 6: 10, 7: 10, 8: 0, 9: 0, 12: 0 }; // 초기 소지금
-
-        function createTex(c1, c2) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 32; canvas.height = 32;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = c1; ctx.fillRect(0, 0, 32, 32);
-            for(let i=0; i<60; i++) {
-                ctx.fillStyle = c2;
-                ctx.fillRect(Math.random()*32, Math.random()*32, 2, 2);
-            }
-            const tex = new THREE.CanvasTexture(canvas);
-            tex.magFilter = THREE.NearestFilter;
-            tex.minFilter = THREE.NearestFilter;
-            return tex;
-        }
-
-        const materials = {
-            1: new THREE.MeshLambertMaterial({ map: createTex('#55a035', '#4b902e') }),
-            2: new THREE.MeshLambertMaterial({ map: createTex('#8B5A2B', '#6e4420') }),
-            3: new THREE.MeshLambertMaterial({ map: createTex('#808080', '#505050') }),
-            4: new THREE.MeshLambertMaterial({ map: createTex('#5c3a21', '#3f2615') }),
-            5: new THREE.MeshLambertMaterial({ map: createTex('#2d6d1e', '#245617') }),
-            6: new THREE.MeshLambertMaterial({ map: createTex('#d2b48c', '#c2a47c') }), // 사막 모래
-            7: new THREE.MeshLambertMaterial({ map: createTex('#ffffff', '#e0e0e0') }), // 빙하 눈
-            8: new THREE.MeshLambertMaterial({ map: createTex('#404040', '#101010') }), // 석탄
-            9: new THREE.MeshLambertMaterial({ map: createTex('#d4a373', '#bc6c25') }), // 철
-            10: new THREE.MeshLambertMaterial({ map: createTex('#b08968', '#7f4f24') }),// 구리
-            11: new THREE.MeshLambertMaterial({ map: createTex('#ffd700', '#cca700') }),// 금
-            12: new THREE.MeshLambertMaterial({ map: createTex('#00ffff', '#00b4d8') }),// 다이아
-            13: new THREE.MeshLambertMaterial({ map: createTex('#52b788', '#2d6a4f') }),// 에메랄드
-        };
-
-        const SAVE_KEY = 'MINECRAFT_ULTRA_WORLD_V1';
-
-        // --- 3D 씬 설정 (광활하고 깊은 맵) ---
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87ceeb);
-        scene.fog = new THREE.FogExp2(0x87ceeb, 0.012);
-
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 25, 0);
-
-        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: false });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-
-        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-        const sun = new THREE.DirectionalLight(0xffffff, 0.7);
-        sun.position.set(50, 100, 50);
-        scene.add(sun);
-
-        // --- 월드 생성 (바이옴 및 지하 광맥 포함) ---
-        function loadWorldLocally() {
-            const data = localStorage.getItem(SAVE_KEY);
-            if (data) { try { return new Map(JSON.parse(data)); } catch(e){} }
-            return null;
-        }
-
-        let world = loadWorldLocally() || new Map();
-        const boxGeo = new THREE.BoxGeometry(1, 1, 1);
-        const blockGroup = new THREE.Group();
-        scene.add(blockGroup);
-
-        function generateTerrain() {
-            const MAP_SIZE = 40; // 훨씬 넓어진 맵
-            for(let x=-MAP_SIZE; x<=MAP_SIZE; x++) {
-                for(let z=-MAP_SIZE; z<=MAP_SIZE; z++) {
-                    // 바이옴 결정 (노이즈 기반 초원, 사막, 빙하)
-                    const biomeNoise = Math.sin(x * 0.05) * Math.cos(z * 0.05);
-                    let surfaceBlock = 1; // 초원 잔디
-                    if (biomeNoise > 0.4) surfaceBlock = 6; // 사막 모래
-                    else if (biomeNoise < -0.4) surfaceBlock = 7; // 빙하 눈
-
-                    const h = Math.floor(Math.sin(x * 0.15) * Math.cos(z * 0.15) * 5 + Math.sin(x*0.08)*3 + 4);
-
-                    // 지하 깊숙이(-15층까지) 생성
-                    for(let y=-15; y<=h; y++) {
-                        let type = 3; // 기본 돌
-                        if (y === h) type = surfaceBlock;
-                        else if (y >= h-3) type = (surfaceBlock === 6 ? 6 : 2); // 모래나 흙
-                        else {
-                            // 지하 광석 랜덤 매장
-                            const r = Math.random();
-                            if (y < 0 && r < 0.03) type = 12; // 다이아몬드 (깊은 곳)
-                            else if (y < 2 && r < 0.04) type = 11; // 금
-                            else if (r < 0.06) type = 9;  // 철
-                            else if (r < 0.08) type = 8;  // 석탄
-                            else if (r < 0.02 && y < -5) type = 13; // 에메랄드
-                        }
-                        world.set(`${x},${y},${z}`, type);
-                    }
-
-                    // 나무 생성 (초원 바이옴에만)
-                    if (surfaceBlock === 1 && Math.random() < 0.02 && Math.abs(x) < MAP_SIZE-4 && Math.abs(z) < MAP_SIZE-4) {
-                        createTree(x, h + 1, z);
-                    }
-                }
-            }
-            saveWorldLocally();
-        }
-
-        function createTree(tx, ty, tz) {
-            for(let i=0; i<5; i++) world.set(`${tx},${ty+i},${tz}`, 4);
-            for(let lx=-2; lx<=2; lx++) {
-                for(let lz=-2; lz<=2; lz++) {
-                    for(let ly=3; ly<=5; ly++) {
-                        if (Math.abs(lx) === 2 && Math.abs(lz) === 2 && ly === 5) continue;
-                        world.set(`${tx+lx},${ty+ly},${tz+lz}`, 5);
-                    }
-                }
-            }
-        }
-
-        function renderWorld() {
-            while(blockGroup.children.length > 0) blockGroup.remove(blockGroup.children[0]);
-            world.forEach((id, key) => {
-                const [x, y, z] = key.split(',').map(Number);
-                const mesh = new THREE.Mesh(boxGeo, materials[id]);
-                mesh.position.set(x, y, z);
-                blockGroup.add(mesh);
-            });
-        }
-
-        if (world.size === 0) generateTerrain();
-        renderWorld();
-
-        function saveWorldLocally() {
-            localStorage.setItem(SAVE_KEY, JSON.stringify(Array.from(world.entries())));
-        }
-
-        // --- 적대적 몬스터 시스템 (좀비, 크리퍼) ---
-        const monsters = [];
-        function spawnMonster(type, x, y, z) {
-            const g = new THREE.Group();
-            const color = (type === 'zombie') ? 0x2b9348 : 0x38b000;
-            const mat = new THREE.MeshLambertMaterial({ color: color });
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.9, 0.3), mat); body.position.y = 0.9;
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), mat); head.position.y = 1.5;
-            g.add(body, head);
-            g.position.set(x, y, z);
-            scene.add(g);
-            monsters.push({ mesh: g, type: type, x: x, z: z, hp: 5 });
-        }
-
-        // 몬스터 몇 마리 소환
-        spawnMonster('zombie', 5, 5, 5);
-        spawnMonster('creeper', -8, 5, -8);
-
-        function updateMonsters(delta, playerPos) {
-            monsters.forEach(m => {
-                const mPos = m.mesh.position;
-                const dist = mPos.distanceTo(playerPos);
-                if (dist < 15 && dist > 1.2) {
-                    // 플레이어 추적
-                    mPos.x += (playerPos.x - mPos.x) * 0.5 * delta;
-                    mPos.z += (playerPos.z - mPos.z) * 0.5 * delta;
-                    m.mesh.lookAt(playerPos.x, mPos.y, playerPos.z);
-                }
-            });
-        }
-
-        // --- P2P 멀티플레이어 ---
-        let peer = null, connections = [], isHost = false, myId = '';
-        let myNickname = '스티브';
-
-        function initPeer() {
-            peer = new Peer();
-            peer.on('open', id => myId = id);
-            peer.on('connection', conn => {
-                connections.push(conn);
-                conn.on('data', data => handleNetData(data));
-                if (isHost) conn.send({ type: 'syncWorld', world: Array.from(world.entries()) });
-            });
-        }
-        function broadcast(data) { connections.forEach(c => c.send(data)); }
-        function handleNetData(data) {
-            if (data.type === 'move') {
-                updateOtherPlayer(data.id, data.x, data.y, data.z, data.ry, data.nickname);
-            } else if (data.type === 'block') {
-                if (data.blockType === 0) world.delete(data.key);
-                else world.set(data.key, data.blockType);
-                renderWorld(); saveWorldLocally();
-                if (isHost) broadcast(data);
-            } else if (data.type === 'syncWorld') {
-                world = new Map(data.world);
-                renderWorld(); saveWorldLocally();
-            }
-        }
-
-        document.getElementById('btn-create').onclick = () => {
-            myNickname = document.getElementById('nickname-input').value.trim() || '스티브';
-            if (!peer) initPeer(); isHost = true;
-            setTimeout(() => { if(myId) document.getElementById('my-room-id').innerText = `방 ID: ${myId}`; }, 800);
-        };
-        document.getElementById('btn-join').onclick = () => {
-            myNickname = document.getElementById('nickname-input').value.trim() || '스티브';
-            const tid = document.getElementById('join-room-id').value.trim();
-            if (!tid) return alert('방 ID 입력 필요');
-            if (!peer) peer = new Peer();
-            setTimeout(() => {
-                const conn = peer.connect(tid);
-                conn.on('open', () => {
-                    connections.push(conn);
-                    conn.on('data', data => handleNetData(data));
-                    document.getElementById('status').innerText = '멀티참가 완료!';
-                });
-            }, 800);
-        };
-        document.getElementById('btn-start').onclick = () => document.getElementById('menu').style.display = 'none';
-        document.getElementById('btn-reset-map').onclick = () => {
-            localStorage.removeItem(SAVE_KEY); world = new Map(); generateTerrain(); renderWorld(); alert('초기화 완료');
-        };
-
-        const otherPlayers = {};
-        function updateOtherPlayer(id, x, y, z, ry, nickname) {
-            if (!otherPlayers[id]) {
-                const g = new THREE.Group();
-                const head = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5), new THREE.MeshLambertMaterial({color:0xd2b48c})); head.position.y = 1.5;
-                const body = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.7,0.25), new THREE.MeshLambertMaterial({color:0x00ffff})); body.position.y = 0.9;
-                g.add(head, body); scene.add(g); otherPlayers[id] = g;
-            }
-            otherPlayers[id].position.lerp(new THREE.Vector3(x,y,z), 0.3);
-            otherPlayers[id].rotation.y = ry;
-        }
-
-        // --- 조작 및 인벤토리 / 제작 시스템 ---
-        let currentMode = 'destroy';
-        let selectedBlock = 1;
-        let isRightMouseDown = false;
-        let prevMouseX = 0, prevMouseY = 0;
-
-        function toggleCrafting(show) {
-            document.getElementById('crafting-modal').style.display = show ? 'block' : 'none';
-        }
-        document.getElementById('btn-craft').onclick = () => toggleCrafting(true);
-
-        function craftItem(item) {
-            alert(item + ' 제작 완료!');
-            toggleCrafting(false);
-        }
-
-        const modeTextEl = document.getElementById('mode-text');
-        document.getElementById('btn-mode').onclick = () => {
-            currentMode = (currentMode === 'destroy') ? 'place' : 'destroy';
-            modeTextEl.innerText = currentMode === 'destroy' ? '현재 모드: [부수기]' : `현재 모드: [설치 - ${blockNames[selectedBlock]}]`;
-        };
-
-        window.addEventListener('mousedown', e => {
-            if (e.button === 2) { isRightMouseDown = true; prevMouseX = e.clientX; prevMouseY = e.clientY; }
-        });
-        window.addEventListener('mouseup', e => { if (e.button === 2) isRightMouseDown = false; });
-        window.addEventListener('mousemove', e => {
-            if (isRightMouseDown) {
-                camera.rotation.y -= (e.clientX - prevMouseX) * 0.005;
-                camera.rotation.x -= (e.clientY - prevMouseY) * 0.005;
-                camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
-                prevMouseX = e.clientX; prevMouseY = e.clientY;
-            }
-        });
-
-        const raycaster = new THREE.Raycaster();
-        function handleAction() {
-            raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-            const hits = raycaster.intersectObjects(blockGroup.children);
-            if (hits.length > 0 && hits[0].distance < 7) {
-                const hit = hits[0];
-                let key = '', type = 0;
-                if (currentMode === 'destroy') {
-                    const p = hit.object.position;
-                    key = `${p.x},${p.y},${p.z}`;
-                    world.delete(key);
-                } else {
-                    const p = hit.object.position.clone().add(hit.face.normal);
-                    key = `${p.x},${p.y},${p.z}`;
-                    world.set(key, selectedBlock);
-                    type = selectedBlock;
-                }
-                renderWorld(); saveWorldLocally();
-                broadcast({ type: 'block', key: key, blockType: type });
-            }
-        }
-
-        window.addEventListener('click', e => { if (e.button === 0 && e.target.tagName === 'CANVAS') handleAction(); });
-        document.getElementById('btn-action').onclick = handleAction;
-        window.oncontextmenu = e => e.preventDefault();
-
-        // 핫바 UI 렌더링
-        const hotbar = document.getElementById('hotbar');
-        function updateHotbar() {
-            hotbar.innerHTML = '';
-            [1, 3, 4, 6, 7, 8, 9, 12].forEach(id => {
-                const slot = document.createElement('div');
-                slot.className = `slot ${id === selectedBlock && currentMode==='place' ? 'selected' : ''}`;
-                slot.innerHTML = `<span>${blockNames[id] || '블록'}</span><span class="count">${inventory[id] || 0}</span>`;
-                slot.onclick = () => { selectedBlock = id; currentMode = 'place'; updateHotbar(); };
-                hotbar.appendChild(slot);
-            });
-        }
-        updateHotbar();
-
-        // 키보드 조작
-        const inputState = { forward: false, backward: false, left: false, right: false, jump: false };
-        function bindTouch(id, k) {
-            const el = document.getElementById(id);
-            el.addEventListener('touchstart', (e)=>{e.preventDefault();inputState[k]=true;});
-            el.addEventListener('touchend', (e)=>{e.preventDefault();inputState[k]=false;});
-            el.addEventListener('mousedown', ()=>{inputState[k]=true;});
-            el.addEventListener('mouseup', ()=>{inputState[k]=false;});
-        }
-        bindTouch('btn-up', 'forward'); bindTouch('btn-down', 'backward');
-        bindTouch('btn-left', 'left'); bindTouch('btn-right', 'right'); bindTouch('btn-jump', 'jump');
-
-        window.addEventListener('keydown', e => {
-            if (e.code === 'KeyW') inputState.forward = true;
-            if (e.code === 'KeyS') inputState.backward = true;
-            if (e.code === 'KeyA') inputState.left = true;
-            if (e.code === 'KeyD') inputState.right = true;
-            if (e.code === 'Space') inputState.jump = true;
-            if (e.code === 'KeyE') toggleCrafting(document.getElementById('crafting-modal').style.display !== 'block');
-        });
-        window.addEventListener('keyup', e => {
-            if (e.code === 'KeyW') inputState.forward = false;
-            if (e.code === 'KeyS') inputState.backward = false;
-            if (e.code === 'KeyA') inputState.left = false;
-            if (e.code === 'KeyD') inputState.right = false;
-            if (e.code === 'Space') inputState.jump = false;
-        });
-
-        function checkCollision(x, y, z) {
-            const r = 0.28, h = 1.6;
-            for(let bx = Math.floor(x-r); bx <= Math.floor(x+r); bx++) {
-                for(let by = Math.floor(y-h+0.1); by <= Math.floor(y-0.1); by++) {
-                    for(let bz = Math.floor(z-r); bz <= Math.floor(z+r); bz++) {
-                        if (world.has(`${bx},${by},${bz}`)) return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        // --- 게임 루프 ---
-        let velocity = new THREE.Vector3();
-        let canJump = false;
-        let lastSend = 0, prevTime = performance.now();
-
-        function animate() {
-            requestAnimationFrame(animate);
-            const now = performance.now();
-            const delta = (now - prevTime) / 1000;
-            prevTime = now;
-
-            updateMonsters(delta, camera.position);
-
-            const speed = 7;
-            const sin = Math.sin(camera.rotation.y), cos = Math.cos(camera.rotation.y);
-            let tx = 0, tz = 0;
-            if (inputState.forward) { tx -= sin; tz -= cos; }
-            if (inputState.backward) { tx += sin; tz += cos; }
-            if (inputState.left) { tx -= cos; tz += sin; }
-            if (inputState.right) { tx += cos; tz -= sin; }
-
-            if (tx !== 0 || tz !== 0) {
-                const len = Math.sqrt(tx*tx + tz*tz);
-                tx = (tx/len)*speed; tz = (tz/len)*speed;
-            }
-
-            velocity.x += (tx - velocity.x) * 0.15;
-            velocity.z += (tz - velocity.z) * 0.15;
-            velocity.y -= 25 * 0.016;
-
-            if (inputState.jump && canJump) { velocity.y = 8.5; canJump = false; }
-
-            const nx = camera.position.x + velocity.x * 0.016;
-            if (!checkCollision(nx, camera.position.y, camera.position.z)) camera.position.x = nx; else velocity.x = 0;
-
-            const nz = camera.position.z + velocity.z * 0.016;
-            if (!checkCollision(camera.position.x, camera.position.y, nz)) camera.position.z = nz; else velocity.z = 0;
-
-            const ny = camera.position.y + velocity.y * 0.016;
-            if (!checkCollision(camera.position.x, ny, camera.position.z)) {
-                camera.position.y = ny; canJump = false;
-            } else { if (velocity.y < 0) canJump = true; velocity.y = 0; }
-
-            if (camera.position.y < -25) { camera.position.set(0, 25, 0); velocity.set(0,0,0); }
-
-            document.getElementById('pos').innerText = `XYZ: ${Math.floor(camera.position.x)}, ${Math.floor(camera.position.y)}, ${Math.floor(camera.position.z)}`;
-
-            if (performance.now() - lastSend > 40) {
-                broadcast({ type: 'move', id: myId, nickname: myNickname, x: camera.position.x, y: camera.position.y - 1.2, z: camera.position.z, ry: camera.rotation.y });
-                lastSend = performance.now();
-            }
-
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
+    <!-- 모듈 파일 순차 임포트 -->
+    <script src="js/world.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/animals.js"></script>
+    <script src="js/monsters.js"></script>
+    <script src="js/network.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>
+// --- 고급 월드 및 지형 생성 모듈 (js/world.js) ---
+
+const BLOCK_NAMES = {
+    1: '잔디', 2: '흙', 3: '돌', 4: '원목', 5: '나뭇잎',
+    6: '모래', 7: '눈블록', 8: '석탄광석', 9: '철광석', 10: '구리광석',
+    11: '금광석', 12: '다이아광석', 13: '에메랄드광석'
+};
+
+const WORLD_SAVE_KEY = 'MC_PROD_WORLD_V2';
+
+class WorldModule {
+    constructor(scene) {
+        this.scene = scene;
+        this.worldMap = this.loadLocalData() || new Map();
+        this.boxGeo = new THREE.BoxGeometry(1, 1, 1);
+        this.blockGroup = new THREE.Group();
+        this.scene.add(this.blockGroup);
+
+        this.materials = this.initMaterials();
+
+        if (this.worldMap.size === 0) {
+            this.generateAdvancedTerrain();
+        } else {
+            this.renderWorld();
+        }
+    }
+
+    createNoiseTex(c1, c2) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 32; canvas.height = 32;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = c1; ctx.fillRect(0, 0, 32, 32);
+        for(let i=0; i<65; i++) {
+            ctx.fillStyle = c2;
+            ctx.fillRect(Math.floor(Math.random()*32), Math.floor(Math.random()*32), 2, 2);
+        }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.magFilter = THREE.NearestFilter;
+        tex.minFilter = THREE.NearestFilter;
+        return tex;
+    }
+
+    initMaterials() {
+        return {
+            1: new THREE.MeshLambertMaterial({ map: this.createNoiseTex('#55a035', '#4b902e') }),
+            2: new THREE.MeshLambertMaterial({ map: this.createNoiseTex('#8B5A2B', '#6e4420') }),
+            3: new THREE.MeshLambertMaterial({ map: this.createNoiseTex('#808080', '#505050') }),
+            4: new THREE.MeshLambertMaterial({ map: this.createNoiseTex('#5c3a21', '#3f2615') }),
+            5: new THREE.MeshLambertMaterial({ map: this.createNoiseTex('#2d6d1e', '#245617') }),
+            6: new THREE.MeshLambertMaterial({ map: this.createNoiseTex('#d2b48c', '#c2a47c') }),
+            7: new THREE.MeshLambertMaterial({ map: this.createNoiseTex('#ffffff', '#e0e0e0') }),
+            8: new THREE.MeshLambertMaterial({ map: this.createNoiseTex('#404040', '#151515') }),
+            9: new THREE.MeshLambertMaterial({ map: this.createNoiseTex('#d4a373', '#bc6c25') }),
+            10: new THREE.MeshLambertMaterial({ map: this.createNoiseTex('#b08968', '#7f4f24') }),
+            11: new THREE.MeshLambertMaterial({ map: this.createNoiseTex('#ffd700', '#cca700') }),
+            12: new THREE.MeshLambertMaterial({ map: this.createNoiseTex('#00ffff', '#00b4d8') }),
+            13: new THREE.MeshLambertMaterial({ map: this.createNoiseTex('#52b788', '#2d6a4f') })
+        };
+    }
+
+    generateAdvancedTerrain() {
+        const MAP_SIZE = 45; // 거대한 광활한 맵 크기
+        for(let x = -MAP_SIZE; x <= MAP_SIZE; x++) {
+            for(let z = -MAP_SIZE; z <= MAP_SIZE; z++) {
+                const biome = Math.sin(x * 0.04) * Math.cos(z * 0.04);
+                let surface = 1;
+                if (biome > 0.35) surface = 6; // 사막
+                else if (biome < -0.35) surface = 7; // 빙하
+
+                const h = Math.floor(Math.sin(x * 0.12) * Math.cos(z * 0.12) * 6 + Math.sin(x*0.06)*3 + 5);
+
+                for(let y = -20; y <= h; y++) {
+                    let type = 3; // 기본 돌
+                    if (y === h) type = surface;
+                    else if (y >= h - 3) type = (surface === 6 ? 6 : 2);
+                    else {
+                        const r = Math.random();
+                        if (y < -4 && r < 0.025) type = 12; // 다이아몬드 (심층부)
+                        else if (y < 2 && r < 0.035) type = 11; // 금광석
+                        else if (r < 0.055) type = 9;  // 철광석
+                        else if (r < 0.075) type = 8;  // 석탄광석
+                        else if (r < 0.015 && y < -8) type = 13; // 에메랄드
+                    }
+                    this.worldMap.set(`${x},${y},${z}`, type);
+                }
+
+                if (surface === 1 && Math.random() < 0.015 && Math.abs(x) < MAP_SIZE - 4 && Math.abs(z) < MAP_SIZE - 4) {
+                    this.buildTree(x, h + 1, z);
+                }
+            }
+        }
+        this.saveLocalData();
+        this.renderWorld();
+    }
+
+    buildTree(tx, ty, tz) {
+        for(let i = 0; i < 5; i++) this.worldMap.set(`${tx},${ty+i},${tz}`, 4);
+        for(let lx = -2; lx <= 2; lx++) {
+            for(let lz = -2; lz <= 2; lz++) {
+                for(let ly = 3; ly <= 5; ly++) {
+                    if (Math.abs(lx) === 2 && Math.abs(lz) === 2 && ly === 5) continue;
+                    this.worldMap.set(`${tx+lx},${ty+ly},${tz+lz}`, 5);
+                }
+            }
+        }
+    }
+
+    renderWorld() {
+        while(this.blockGroup.children.length > 0) {
+            this.blockGroup.remove(this.blockGroup.children[0]);
+        }
+        this.worldMap.forEach((id, key) => {
+            const [x, y, z] = key.split(',').map(Number);
+            const mesh = new THREE.Mesh(this.boxGeo, this.materials[id]);
+            mesh.position.set(x, y, z);
+            this.blockGroup.add(mesh);
+        });
+    }
+
+    setBlock(x, y, z, type) {
+        const key = `${x},${y},${z}`;
+        if (type === 0) this.worldMap.delete(key);
+        else this.worldMap.set(key, type);
+        this.renderWorld();
+        this.saveLocalData();
+    }
+
+    saveLocalData() {
+        localStorage.setItem(WORLD_SAVE_KEY, JSON.stringify(Array.from(this.worldMap.entries())));
+    }
+
+    loadLocalData() {
+        const data = localStorage.getItem(WORLD_SAVE_KEY);
+        if (data) { try { return new Map(JSON.parse(data)); } catch(e){} }
+        return null;
+    }
+}
+// --- 플레이어 물리, 조작 및 인벤토리/제작 모듈 (js/player.js) ---
+
+class PlayerModule {
+    constructor(scene, camera, worldManager) {
+        this.scene = scene;
+        this.camera = camera;
+        this.worldManager = worldManager;
+
+        // 플레이어 위치 초기화
+        this.camera.position.set(0, 25, 0);
+        this.velocity = new THREE.Vector3();
+        this.canJump = false;
+
+        // 조작 및 모드 상태
+        this.inputState = { forward: false, backward: false, left: false, right: false, jump: false };
+        this.currentMode = 'destroy'; // 'destroy' 또는 'place'
+        this.selectedBlock = 1;
+
+        // 인벤토리 자원 보유량
+        this.inventory = {
+            1: 15, 3: 30, 4: 20, 6: 10, 7: 10, 
+            8: 5, 9: 5, 12: 2, 13: 1
+        };
+
+        // 마우스 회전 제어
+        this.isRightMouseDown = false;
+        this.prevMouseX = 0;
+        this.prevMouseY = 0;
+
+        this.raycaster = new THREE.Raycaster();
+
+        this.initEventListeners();
+        this.updateHotbarUI();
+    }
+
+    initEventListeners() {
+        // 키보드 이동 및 블록 단축키 (1~5)
+        window.addEventListener('keydown', e => {
+            if (e.code === 'KeyW') this.inputState.forward = true;
+            if (e.code === 'KeyS') this.inputState.backward = true;
+            if (e.code === 'KeyA') this.inputState.left = true;
+            if (e.code === 'KeyD') this.inputState.right = true;
+            if (e.code === 'Space') this.inputState.jump = true;
+            if (e.code === 'KeyE') {
+                const modal = document.getElementById('crafting-modal');
+                if (modal) modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
+            }
+
+            const keys = ['1', '3', '4', '6', '7', '8', '9', '12'];
+            if (keys.includes(e.key)) {
+                this.selectedBlock = parseInt(e.key);
+                this.currentMode = 'place';
+                this.updateModeUI();
+                this.updateHotbarUI();
+            }
+        });
+
+        window.addEventListener('keyup', e => {
+            if (e.code === 'KeyW') this.inputState.forward = false;
+            if (e.code === 'KeyS') this.inputState.backward = false;
+            if (e.code === 'KeyA') this.inputState.left = false;
+            if (e.code === 'KeyD') this.inputState.right = false;
+            if (e.code === 'Space') this.inputState.jump = false;
+        });
+
+        // 우클릭 드래그 시점 회전
+        window.addEventListener('mousedown', e => {
+            if (e.button === 2) {
+                this.isRightMouseDown = true;
+                this.prevMouseX = e.clientX;
+                this.prevMouseY = e.clientY;
+            }
+        });
+
+        window.addEventListener('mouseup', e => {
+            if (e.button === 2) this.isRightMouseDown = false;
+        });
+
+        window.addEventListener('mousemove', e => {
+            if (this.isRightMouseDown) {
+                const dx = e.clientX - this.prevMouseX;
+                const dy = e.clientY - this.prevMouseY;
+                this.camera.rotation.y -= dx * 0.005;
+                this.camera.rotation.x -= dy * 0.005;
+                this.camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.camera.rotation.x));
+                this.prevMouseX = e.clientX;
+                this.prevMouseY = e.clientY;
+            }
+        });
+
+        // 좌클릭 액션 (파괴 및 설치)
+        window.addEventListener('click', e => {
+            if (e.button === 0 && e.target.tagName === 'CANVAS') {
+                this.performAction();
+            }
+        });
+
+        window.oncontextmenu = e => e.preventDefault();
+
+        // UI 버튼 및 터치 이벤트 연결
+        document.getElementById('btn-mode').onclick = () => this.toggleMode();
+        document.getElementById('btn-action').onclick = () => this.performAction();
+        document.getElementById('btn-craft').onclick = () => {
+            const modal = document.getElementById('crafting-modal');
+            modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
+        };
+
+        this.bindTouch('btn-up', 'forward');
+        this.bindTouch('btn-down', 'backward');
+        this.bindTouch('btn-left', 'left');
+        this.bindTouch('btn-right', 'right');
+        this.bindTouch('btn-jump', 'jump');
+    }
+
+    bindTouch(btnId, keyName) {
+        const el = document.getElementById(btnId);
+        if (!el) return;
+        const start = (e) => { e.preventDefault(); this.inputState[keyName] = true; };
+        const end = (e) => { e.preventDefault(); this.inputState[keyName] = false; };
+        el.addEventListener('touchstart', start); el.addEventListener('touchend', end);
+        el.addEventListener('mousedown', start); el.addEventListener('mouseup', end);
+    }
+
+    toggleMode() {
+        this.currentMode = (this.currentMode === 'destroy') ? 'place' : 'destroy';
+        this.updateModeUI();
+        this.updateHotbarUI();
+    }
+
+    updateModeUI() {
+        const modeTextEl = document.getElementById('mode-text');
+        if (!modeTextEl) return;
+        if (this.currentMode === 'destroy') {
+            modeTextEl.innerText = '모드: [부수기]';
+            modeTextEl.style.color = '#ff5555';
+        } else {
+            modeTextEl.innerText = `모드: [설치 - ${BLOCK_NAMES[this.selectedBlock]}]`;
+            modeTextEl.style.color = '#55ff55';
+        }
+    }
+
+    updateHotbarUI() {
+        const hotbar = document.getElementById('hotbar');
+        if (!hotbar) return;
+        hotbar.innerHTML = '';
+        const slots = [1, 3, 4, 6, 7, 8, 9, 12];
+        slots.forEach(id => {
+            const slot = document.createElement('div');
+            slot.className = `slot ${id === this.selectedBlock && this.currentMode === 'place' ? 'selected' : ''}`;
+            slot.innerHTML = `<span>${BLOCK_NAMES[id]}</span><span class="count">${this.inventory[id] || 0}</span>`;
+            slot.onclick = () => {
+                this.selectedBlock = id;
+                this.currentMode = 'place';
+                this.updateModeUI();
+                this.updateHotbarUI();
+            };
+            hotbar.appendChild(slot);
+        });
+    }
+
+    craftItem(itemType) {
+        if (itemType === 'wooden_pickaxe') {
+            if ((this.inventory[4] || 0) >= 3) {
+                this.inventory[4] -= 3;
+                alert('성공: 나무 곡괭이를 제작했습니다!');
+            } else {
+                alert('재료 부족: 원목 3개가 필요합니다.');
+            }
+        } else if (itemType === 'stone_pickaxe') {
+            if ((this.inventory[3] || 0) >= 3) {
+                this.inventory[3] -= 3;
+                alert('성공: 돌 곡괭이를 제작했습니다!');
+            } else {
+                alert('재료 부족: 돌 3개가 필요합니다.');
+            }
+        } else if (itemType === 'iron_sword') {
+            if ((this.inventory[9] || 0) >= 2) {
+                this.inventory[9] -= 2;
+                alert('성공: 철 검을 제작했습니다!');
+            } else {
+                alert('재료 부족: 철광석 2개가 필요합니다.');
+            }
+        }
+        this.updateHotbarUI();
+        document.getElementById('crafting-modal').style.display = 'none';
+    }
+
+    performAction() {
+        this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+        const hits = this.raycaster.intersectObjects(this.worldManager.blockGroup.children);
+
+        if (hits.length > 0 && hits[0].distance < 7) {
+            const hit = hits[0];
+            let key = '', type = 0;
+
+            if (this.currentMode === 'destroy') {
+                const p = hit.object.position;
+                key = `${p.x},${p.y},${p.z}`;
+                const brokenId = this.worldManager.worldMap.get(key);
+                if (brokenId) {
+                    this.inventory[brokenId] = (this.inventory[brokenId] || 0) + 1;
+                }
+                this.worldManager.setBlock(p.x, p.y, p.z, 0);
+            } else {
+                if ((this.inventory[this.selectedBlock] || 0) > 0) {
+                    const p = hit.object.position.clone().add(hit.face.normal);
+                    key = `${p.x},${p.y},${p.z}`;
+                    this.worldManager.setBlock(p.x, p.y, p.z, this.selectedBlock);
+                    this.inventory[this.selectedBlock]--;
+                    type = this.selectedBlock;
+                } else {
+                    alert('인벤토리에 해당 블록이 부족합니다!');
+                    return;
+                }
+            }
+            this.updateHotbarUI();
+            if (window.networkModule) window.networkModule.sendBlockChange(key, type);
+        }
+    }
+
+    checkCollision(x, y, z) {
+        const r = 0.28;
+        const h = 1.6;
+        const minX = Math.floor(x - r), maxX = Math.floor(x + r);
+        const minY = Math.floor(y - h + 0.1), maxY = Math.floor(y - 0.1);
+        const minZ = Math.floor(z - r), maxZ = Math.floor(z + r);
+
+        for (let bx = minX; bx <= maxX; bx++) {
+            for (let by = minY; by <= maxY; by++) {
+                for (let bz = minZ; bz <= maxZ; bz++) {
+                    if (this.worldManager.worldMap.has(`${bx},${by},${bz}`)) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    update(delta) {
+        const targetSpeed = 7;
+        const sin = Math.sin(this.camera.rotation.y);
+        const cos = Math.cos(this.camera.rotation.y);
+
+        let targetX = 0, targetZ = 0;
+        if (this.inputState.forward) { targetX -= sin; targetZ -= cos; }
+        if (this.inputState.backward) { targetX += sin; targetZ += cos; }
+        if (this.inputState.left) { targetX -= cos; targetZ += sin; }
+        if (this.inputState.right) { targetX += cos; targetZ -= sin; }
+
+        if (targetX !== 0 || targetZ !== 0) {
+            const len = Math.sqrt(targetX * targetX + targetZ * targetZ);
+            targetX = (targetX / len) * targetSpeed;
+            targetZ = (targetZ / len) * targetSpeed;
+        }
+
+        this.velocity.x += (targetX - this.velocity.x) * 0.15;
+        this.velocity.z += (targetZ - this.velocity.z) * 0.15;
+        this.velocity.y -= 25 * 0.016;
+
+        if (this.inputState.jump && this.canJump) {
+            this.velocity.y = 8.5;
+            this.canJump = false;
+        }
+
+        const nextX = this.camera.position.x + this.velocity.x * 0.016;
+        if (!this.checkCollision(nextX, this.camera.position.y, this.camera.position.z)) {
+            this.camera.position.x = nextX;
+        } else { this.velocity.x = 0; }
+
+        const nextZ = this.camera.position.z + this.velocity.z * 0.016;
+        if (!this.checkCollision(this.camera.position.x, this.camera.position.y, nextZ)) {
+            this.camera.position.z = nextZ;
+        } else { this.velocity.z = 0; }
+
+        const nextY = this.camera.position.y + this.velocity.y * 0.016;
+        if (!this.checkCollision(this.camera.position.x, nextY, this.camera.position.z)) {
+            this.camera.position.y = nextY;
+            this.canJump = false;
+        } else {
+            if (this.velocity.y < 0) this.canJump = true;
+            this.velocity.y = 0;
+        }
+
+        if (this.camera.position.y < -30) {
+            this.camera.position.set(0, 25, 0);
+            this.velocity.set(0, 0, 0);
+        }
+
+        const posEl = document.getElementById('pos');
+        if (posEl) {
+            posEl.innerText = `XYZ: ${Math.floor(this.camera.position.x)}, ${Math.floor(this.camera.position.y)}, ${Math.floor(this.camera.position.z)}`;
+        }
+    }
+}
+// --- 동물 AI 및 생태계 모듈 (js/animals.js) ---
+
+class AnimalsModule {
+    constructor(scene, worldManager) {
+        this.scene = scene;
+        this.worldManager = worldManager;
+        this.animals = [];
+
+        this.initAnimals();
+    }
+
+    createPigModel() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0xffb6c1 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 1.0), mat);
+        body.position.y = 0.5;
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), mat);
+        head.position.set(0, 0.7, 0.6);
+        group.add(body, head);
+        return group;
+    }
+
+    createCowModel() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x554433 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.8, 1.2), mat);
+        body.position.y = 0.7;
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), mat);
+        head.position.set(0, 1.0, 0.7);
+        group.add(body, head);
+        return group;
+    }
+
+    initAnimals() {
+        for (let i = 0; i < 8; i++) {
+            const rx = Math.floor((Math.random() - 0.5) * 35);
+            const rz = Math.floor((Math.random() - 0.5) * 35);
+            const model = (i % 2 === 0) ? this.createPigModel() : this.createCowModel();
+            this.scene.add(model);
+            this.animals.push({
+                mesh: model,
+                x: rx,
+                z: rz,
+                vx: 0,
+                vz: 0,
+                timer: 0
+            });
+        }
+    }
+
+    update(delta) {
+        this.animals.forEach(animal => {
+            animal.timer -= delta;
+            if (animal.timer <= 0) {
+                animal.timer = 3 + Math.random() * 5;
+                if (Math.random() < 0.65) {
+                    const angle = Math.random() * Math.PI * 2;
+                    animal.vx = Math.cos(angle) * 1.0;
+                    animal.vz = Math.sin(angle) * 1.0;
+                    animal.mesh.rotation.y = -angle + Math.PI / 2;
+                } else {
+                    animal.vx = 0;
+                    animal.vz = 0;
+                }
+            }
+
+            animal.x += animal.vx * delta;
+            animal.z += animal.vz * delta;
+
+            const bx = Math.round(animal.x);
+            const bz = Math.round(animal.z);
+            let sy = 10;
+            
+            for (let y = 20; y >= -10; y--) {
+                if (this.worldManager.worldMap.has(`${bx},${y},${bz}`)) {
+                    sy = y + 0.5;
+                    break;
+                }
+            }
+            animal.mesh.position.set(animal.x, sy, animal.z);
+        });
+    }
+}
+// --- 적대적 몹(좀비, 크리퍼) AI 모듈 (js/monsters.js) ---
+
+class MonstersModule {
+    constructor(scene, worldManager) {
+        this.scene = scene;
+        this.worldManager = worldManager;
+        this.monsters = [];
+
+        this.spawnInitialMonsters();
+    }
+
+    createZombieModel() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x2b9348 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.9, 0.3), mat);
+        body.position.y = 0.9;
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), mat);
+        head.position.y = 1.5;
+        group.add(body, head);
+        return group;
+    }
+
+    createCreeperModel() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x38b000 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.1, 0.6), mat);
+        body.position.y = 0.8;
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), mat);
+        head.position.y = 1.5;
+        group.add(body, head);
+        return group;
+    }
+
+    spawnInitialMonsters() {
+        const positions = [
+            { type: 'zombie', x: 12, z: 12 },
+            { type: 'creeper', x: -12, z: -12 },
+            { type: 'zombie', x: 15, z: -15 }
+        ];
+
+        positions.forEach(pos => {
+            const model = (pos.type === 'zombie') ? this.createZombieModel() : this.createCreeperModel();
+            this.scene.add(model);
+            this.monsters.push({
+                mesh: model,
+                type: pos.type,
+                x: pos.x,
+                z: pos.z,
+                hp: 10
+            });
+        });
+    }
+
+    update(delta, playerPosition) {
+        this.monsters.forEach(m => {
+            const mPos = m.mesh.position;
+            const dist = mPos.distanceTo(playerPosition);
+
+            // 플레이어가 일정 거리 안에 들어오면 추적
+            if (dist < 18 && dist > 1.2) {
+                mPos.x += (playerPosition.x - mPos.x) * 0.4 * delta;
+                mPos.z += (playerPosition.z - mPos.z) * 0.4 * delta;
+                m.mesh.lookAt(playerPosition.x, mPos.y, playerPosition.z);
+            }
+
+            const bx = Math.round(mPos.x);
+            const bz = Math.round(mPos.z);
+            let sy = 10;
+
+            for (let y = 20; y >= -10; y--) {
+                if (this.worldManager.worldMap.has(`${bx},${y},${bz}`)) {
+                    sy = y + 0.5;
+                    break;
+                }
+            }
+            mPos.y = sy;
+        });
+    }
+}
+// --- P2P 멀티플레이어 네트워크 모듈 (js/network.js) ---
+
+class NetworkModule {
+    constructor(worldManager) {
+        this.worldManager = worldManager;
+        this.peer = null;
+        this.connections = [];
+        this.isHost = false;
+        this.myId = '';
+        this.otherPlayers = {};
+
+        this.initEventListeners();
+    }
+
+    initPeer() {
+        this.peer = new Peer();
+        this.peer.on('open', id => {
+            this.myId = id;
+            const roomEl = document.getElementById('my-room-id');
+            if (roomEl) roomEl.innerText = `내 방 ID: ${id}`;
+        });
+        this.peer.on('connection', conn => this.setupConnection(conn));
+    }
+
+    setupConnection(conn) {
+        this.connections.push(conn);
+        const onlineEl = document.getElementById('online');
+        if (onlineEl) onlineEl.innerText = `접속자: ${this.connections.length + 1}명`;
+        
+        const statusEl = document.getElementById('status');
+        if (statusEl) statusEl.innerText = '멀티플레이 연결됨!';
+
+        conn.on('data', data => this.handleData(data));
+        conn.on('close', () => {
+            this.connections = this.connections.filter(c => c !== conn);
+            if (onlineEl) onlineEl.innerText = `접속자: ${this.connections.length + 1}명`;
+        });
+
+        if (this.isHost) {
+            conn.send({ type: 'syncWorld', world: Array.from(this.worldManager.worldMap.entries()) });
+        }
+    }
+
+    broadcast(data) {
+        this.connections.forEach(c => c.send(data));
+    }
+
+    handleData(data) {
+        if (data.type === 'move') {
+            this.updateOtherPlayer(data.id, data.x, data.y, data.z, data.ry, data.nickname);
+        } else if (data.type === 'block') {
+            if (data.blockType === 0) {
+                this.worldManager.worldMap.delete(data.key);
+            } else {
+                this.worldManager.worldMap.set(data.key, data.blockType);
+            }
+            this.worldManager.renderWorld();
+            this.worldManager.saveLocalData();
+            if (this.isHost) this.broadcast(data);
+        } else if (data.type === 'syncWorld') {
+            this.worldManager.worldMap = new Map(data.world);
+            this.worldManager.renderWorld();
+            this.worldManager.saveLocalData();
+        }
+    }
+
+    sendBlockChange(key, blockType) {
+        this.broadcast({ type: 'block', key: key, blockType: blockType });
+    }
+
+    sendPlayerMove(x, y, z, ry, nickname) {
+        this.broadcast({
+            type: 'move',
+            id: this.myId,
+            nickname: nickname,
+            x: x, y: y, z: z,
+            ry: ry
+        });
+    }
+
+    createSteveGroup() {
+        const group = new THREE.Group();
+        const headMat = new THREE.MeshLambertMaterial({ color: 0xd2b48c });
+        const bodyMat = new THREE.MeshLambertMaterial({ color: 0x00ffff });
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), headMat);
+        head.position.y = 1.5;
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.7, 0.25), bodyMat);
+        body.position.y = 0.9;
+        group.add(head, body);
+        return group;
+    }
+
+    updateOtherPlayer(id, x, y, z, ry, nickname) {
+        if (!this.otherPlayers[id]) {
+            const group = this.createSteveGroup();
+            // 닉네임 스프라이트 라벨
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0,0,256,64);
+            ctx.font = 'Bold 26px sans-serif'; ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(nickname || '스티브', 128, 32);
+            const tex = new THREE.CanvasTexture(canvas);
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex }));
+            sprite.scale.set(2, 0.5, 1); sprite.position.y = 2.2;
+            group.add(sprite);
+
+            window.scene.add(group);
+            this.otherPlayers[id] = group;
+        }
+        this.otherPlayers[id].position.lerp(new THREE.Vector3(x, y, z), 0.3);
+        this.otherPlayers[id].rotation.y = ry;
+    }
+
+    initEventListeners() {
+        document.getElementById('btn-create').onclick = () => {
+            if (!this.peer) this.initPeer();
+            this.isHost = true;
+        };
+
+        document.getElementById('btn-join').onclick = () => {
+            const tid = document.getElementById('join-room-id').value.trim();
+            if (!tid) return alert('참가할 방 ID를 입력하세요');
+            if (!this.peer) {
+                this.peer = new Peer();
+                this.peer.on('open', () => {
+                    const conn = this.peer.connect(tid);
+                    conn.on('open', () => this.setupConnection(conn));
+                });
+            } else {
+                const conn = this.peer.connect(tid);
+                conn.on('open', () => this.setupConnection(conn));
+            }
+        };
+
+        document.getElementById('btn-start').onclick = () => {
+            document.getElementById('menu').style.display = 'none';
+        };
+
+        document.getElementById('btn-reset-map').onclick = () => {
+            if (confirm('정말로 맵을 초기화하시겠습니까?')) {
+                localStorage.removeItem(WORLD_SAVE_KEY);
+                location.reload();
+            }
+        };
+    }
+}
+// --- 메인 게임 실행 및 루프 관리 모듈 (js/main.js) ---
+
+window.addEventListener('DOMContentLoaded', () => {
+    // 1. Three.js 기본 렌더러 및 씬 설정
+    const scene = new THREE.Scene();
+    window.scene = scene; // 네트워크 모듈에서 참조용
+    scene.background = new THREE.Color(0x87ceeb);
+    scene.fog = new THREE.FogExp2(0x87ceeb, 0.012);
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.7);
+    sun.position.set(50, 100, 50);
+    scene.add(sun);
+
+    // 2. 모듈 인스턴스 생성 및 연결
+    const worldManager = new WorldModule(scene);
+    window.worldManager = worldManager;
+
+    const player = new PlayerModule(scene, camera, worldManager);
+    window.player = player; // HTML 인라인 onclick 등에서 참조
+
+    const animalsModule = new AnimalsModule(scene, worldManager);
+    const monstersModule = new MonstersModule(scene, worldManager);
+    const networkModule = new NetworkModule(worldManager);
+    window.networkModule = networkModule;
+
+    // 3. 메인 게임 루프 (Game Loop)
+    let lastTime = performance.now();
+    let lastNetworkSend = 0;
+
+    function gameLoop() {
+        requestAnimationFrame(gameLoop);
+
+        const now = performance.now();
+        const delta = (now - lastTime) / 1000;
+        lastTime = now;
+
+        // 각 모듈 업데이트 실행
+        player.update(delta);
+        animalsModule.update(delta);
+        monstersModule.update(delta, camera.position);
+
+        // 주기적 멀티플레이 위치 동기화 (40ms 마다)
+        if (now - lastNetworkSend > 40 && networkModule) {
+            const nicknameInput = document.getElementById('nickname-input');
+            const nick = nicknameInput ? nicknameInput.value.trim() : '스티브';
+            networkModule.sendPlayerMove(
+                camera.position.x,
+                camera.position.y - 1.2,
+                camera.position.z,
+                camera.rotation.y,
+                nick
+            );
+            lastNetworkSend = now;
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    gameLoop();
+
+    // 화면 크기 변경 대응
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+});
